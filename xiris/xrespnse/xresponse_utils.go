@@ -22,12 +22,12 @@ type XResponse struct {
 	shortNameParamError string
 }
 
-func GenXResponse(messageMap map[int]string) *XResponse {
+func GenXResponse(messageMap map[int]string) XResponse {
 	commonResponse := XResponse{
 		MessageMap: messageMap,
 	}
 	commonResponse.shortNameParamError = getType((*ParamError)(nil))
-	return &commonResponse
+	return commonResponse
 }
 func getType(myvar interface{}) string {
 	t := reflect.TypeOf(myvar)
