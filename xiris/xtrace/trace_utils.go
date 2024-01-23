@@ -1,16 +1,16 @@
-package traceutils
+package xtrace
 
 import (
 	"context"
 	"fmt"
 	"github.com/kataras/iris/v12"
-	"github.com/ruomm/goxiris/xiris/configx"
+	"github.com/ruomm/goxiris/xiris/xrespnse"
 	"strconv"
 	"strings"
 	"time"
 )
 
-type ContextTraceInfo struct {
+type XTraceInfo struct {
 	TraceId string
 	TsArr   []int64
 	Events  []string
@@ -21,8 +21,8 @@ type ContextTraceInfo struct {
 * 获取一个带TraceInfo的Context环境变量
  */
 func ToTraceContext(uCtx iris.Context) *context.Context {
-	traceId := uCtx.GetHeader(configx.HEADER_NAME_TRACEID)
-	userIdStr := uCtx.GetHeader(configx.HEADER_NAME_AUTH_USER_ID)
+	traceId := uCtx.GetHeader(xrespnse.HEADER_NAME_TRACEID)
+	userIdStr := uCtx.GetHeader(xrespnse.HEADER_NAME_AUTH_USER_ID)
 	var userId uint = 0
 	if len(userIdStr) > 0 {
 		tmpUserId, err := strconv.ParseUint(userIdStr, 10, 64)
@@ -33,9 +33,9 @@ func ToTraceContext(uCtx iris.Context) *context.Context {
 	//ts := strconv.ParseInt(uCtx.GetHeader(common.HEADER_NAME_TS), 10)
 	var tsArr []int64 = nil
 	var events []string = nil
-	tsHeader := uCtx.GetHeader(configx.HEADER_NAME_TS)
+	tsHeader := uCtx.GetHeader(xrespnse.HEADER_NAME_TS)
 	if tsHeader != "" {
-		ts, err := strconv.ParseInt(uCtx.GetHeader(configx.HEADER_NAME_TS), 10, 64)
+		ts, err := strconv.ParseInt(uCtx.GetHeader(xrespnse.HEADER_NAME_TS), 10, 64)
 		if err != nil {
 			// 可能字符串 s 不是合法的整数格式，处理错误
 			fmt.Println(err)
@@ -47,13 +47,13 @@ func ToTraceContext(uCtx iris.Context) *context.Context {
 			events = nil
 		}
 	}
-	contextTraceInfo := ContextTraceInfo{
+	xTraceInfo := XTraceInfo{
 		TraceId: traceId,
 		TsArr:   tsArr,
 		Events:  events,
 		UserId:  userId,
 	}
-	ctx := context.WithValue(context.Background(), configx.CONTEXT_KEY_TRACE, &contextTraceInfo)
+	ctx := context.WithValue(context.Background(), xrespnse.CONTEXT_KEY_TRACE, &xTraceInfo)
 	return &ctx
 }
 
@@ -64,11 +64,11 @@ func TraceIdFromContext(pCtx *context.Context) string {
 	if pCtx == nil {
 		return ""
 	}
-	pTraceInfoAny := (*pCtx).Value(configx.CONTEXT_KEY_TRACE)
+	pTraceInfoAny := (*pCtx).Value(xrespnse.CONTEXT_KEY_TRACE)
 	if pTraceInfoAny == nil {
 		return ""
 	}
-	pTraceInfo := pTraceInfoAny.(*ContextTraceInfo)
+	pTraceInfo := pTraceInfoAny.(*XTraceInfo)
 	if pTraceInfo == nil {
 		return ""
 	}
@@ -82,11 +82,11 @@ func UserIdFromContext(pCtx *context.Context) uint {
 	if pCtx == nil {
 		return 0
 	}
-	pTraceInfoAny := (*pCtx).Value(configx.CONTEXT_KEY_TRACE)
+	pTraceInfoAny := (*pCtx).Value(xrespnse.CONTEXT_KEY_TRACE)
 	if pTraceInfoAny == nil {
 		return 0
 	}
-	pTraceInfo := pTraceInfoAny.(*ContextTraceInfo)
+	pTraceInfo := pTraceInfoAny.(*XTraceInfo)
 	if pTraceInfo == nil {
 		return 0
 	}
@@ -102,11 +102,11 @@ func TraceTimePoint(pCtx *context.Context, eventName string) {
 	if pCtx == nil {
 		return
 	}
-	pTraceInfoAny := (*pCtx).Value(configx.CONTEXT_KEY_TRACE)
+	pTraceInfoAny := (*pCtx).Value(xrespnse.CONTEXT_KEY_TRACE)
 	if pTraceInfoAny == nil {
 		return
 	}
-	pTraceInfo := pTraceInfoAny.(*ContextTraceInfo)
+	pTraceInfo := pTraceInfoAny.(*XTraceInfo)
 
 	if pTraceInfo == nil {
 		return
@@ -135,11 +135,11 @@ func TraceTimePrint(pCtx *context.Context) string {
 	if pCtx == nil {
 		return ""
 	}
-	pTraceInfoAny := (*pCtx).Value(configx.CONTEXT_KEY_TRACE)
+	pTraceInfoAny := (*pCtx).Value(xrespnse.CONTEXT_KEY_TRACE)
 	if pTraceInfoAny == nil {
 		return ""
 	}
-	pTraceInfo := pTraceInfoAny.(*ContextTraceInfo)
+	pTraceInfo := pTraceInfoAny.(*XTraceInfo)
 
 	if pTraceInfo == nil {
 		return ""

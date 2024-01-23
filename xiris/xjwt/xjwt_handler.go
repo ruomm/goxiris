@@ -55,13 +55,13 @@ func (t *XjwtHander) UseAuthHander(authHander XjwAuthHander) {
 func (t *XjwtHander) LoadConfigByYaml(confYaml string, contextPath string, traceIdKey string, traceTsKey string) error {
 	byteData, err := ioutil.ReadFile(getAbsDir(confYaml))
 	if err != nil {
-		panic(fmt.Sprintf("Web XjwtHander load configx form yaml file err:%v", err))
+		panic(fmt.Sprintf("Web XjwtHander load config form yaml file err:%v", err))
 		return err
 	}
 	webAPiConfigsByYaml := WebApiConfigs{}
 	err = yaml.Unmarshal(byteData, &webAPiConfigsByYaml)
 	if err != nil {
-		panic(fmt.Sprintf("Web XjwtHander read configx yaml to WebAPiConfigs err:%v", err))
+		panic(fmt.Sprintf("Web XjwtHander read config yaml to WebAPiConfigs err:%v", err))
 		return err
 	}
 	if contextPath != "" {
@@ -102,7 +102,7 @@ func (t *XjwtHander) LoadConfigByYaml(confYaml string, contextPath string, trace
 			webAPiConfigsByYaml.WebApiConfigs[i].AgentRealIpHeader = "X-Real-IP"
 		}
 	}
-	fmt.Println("Web XjwtHander configx init success!")
+	fmt.Println("Web XjwtHander config init success!")
 	t.webApiConfigs = &webAPiConfigsByYaml
 	return nil
 }

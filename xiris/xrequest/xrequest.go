@@ -10,13 +10,13 @@ import (
 	"errors"
 	"github.com/kataras/iris/v12"
 	"github.com/ruomm/goxframework/gox/refxstandard"
-	"github.com/ruomm/goxiris/xiris/configx"
+	"github.com/ruomm/goxiris/xiris/xrespnse"
 	"github.com/ruomm/goxiris/xiris/xvalidator"
 )
 
 const xRequest_Parse_Param_COMMON = "xreq_param"
 
-func XRequestParse(pCtx iris.Context, req interface{}) (error, *[]configx.CommonParamError) {
+func XRequestParse(pCtx iris.Context, req interface{}) (error, *[]xrespnse.ParamError) {
 	// 解析参数
 	err := xReq_parse(pCtx, req)
 	if err != nil {
@@ -34,7 +34,7 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 	} else if "GET" != ctx.Method() {
 		ctx.ReadJSON(&req)
 		//if err != nil {
-		//	return &configx.CommonCoreError{ErrorCode: common.ERROR_CODE_PARAM_CHECK, Message: "解析参数失败"}
+		//	return &xrespnse.CommonCoreError{ErrorCode: common.ERROR_CODE_PARAM_CHECK, Message: "解析参数失败"}
 		//}
 	}
 	xrefHander := refxstandard.XrefHander(func(origKey string, key string) (interface{}, error) {

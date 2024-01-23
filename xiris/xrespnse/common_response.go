@@ -4,31 +4,31 @@
  * @create 2024/1/23 10:01
  * @version 1.0
  */
-package configx
+package xrespnse
 
 import (
 	"reflect"
 	"strings"
 )
 
-type CommonParamError struct {
+type ParamError struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
 }
-type CommonResponse struct {
+type XResponse struct {
 	MessageMap          map[int]string
 	OkCode              int
 	OkMessage           string
 	shortNameParamError string
 }
 
-func GenCommonResponse(okCode int, okMessage string, messageMap map[int]string) *CommonResponse {
-	commonResponse := CommonResponse{
+func GenXResponse(okCode int, okMessage string, messageMap map[int]string) *XResponse {
+	commonResponse := XResponse{
 		OkCode:     okCode,
 		OkMessage:  okMessage,
 		MessageMap: messageMap,
 	}
-	commonResponse.shortNameParamError = getType((*CommonParamError)(nil))
+	commonResponse.shortNameParamError = getType((*ParamError)(nil))
 	return &commonResponse
 }
 func getType(myvar interface{}) string {
@@ -38,10 +38,10 @@ func getType(myvar interface{}) string {
 	return strings.ToLower(shortName)
 }
 
-func (t *CommonResponse) constructCommonResult2(respCode int, datas ...interface{}) (int, string, []CommonParamError, interface{}, interface{}) {
+func (t *XResponse) constructCommonResult2(respCode int, datas ...interface{}) (int, string, []ParamError, interface{}, interface{}) {
 	var code = respCode
 	var message string
-	var errorDetails []CommonParamError = nil
+	var errorDetails []ParamError = nil
 	var data interface{} = nil
 	var datalist interface{} = nil
 
@@ -74,7 +74,7 @@ func (t *CommonResponse) constructCommonResult2(respCode int, datas ...interface
 		} else if actualKind == reflect.Slice {
 			actualTypeName := strings.ToLower(actualValue.String())
 			if strings.HasSuffix(actualTypeName, t.shortNameParamError) {
-				tmpErrorDetails := actualValue.Interface().([]CommonParamError)
+				tmpErrorDetails := actualValue.Interface().([]ParamError)
 				if len(tmpErrorDetails) <= 0 {
 					continue
 				}
@@ -91,7 +91,7 @@ func (t *CommonResponse) constructCommonResult2(respCode int, datas ...interface
 		} else if actualKind == reflect.Struct {
 			actualTypeName := strings.ToLower(actualValue.String())
 			if strings.HasSuffix(actualTypeName, t.shortNameParamError) {
-				tmpErrorDetail := actualValue.Interface().(CommonParamError)
+				tmpErrorDetail := actualValue.Interface().(ParamError)
 				errorDetails = append(errorDetails, tmpErrorDetail)
 			} else if strings.HasSuffix(actualTypeName, "vo") || strings.HasSuffix(actualTypeName, "data") || strings.HasSuffix(actualTypeName, "resp") || strings.HasSuffix(actualTypeName, "result") {
 				data = datas[i]
