@@ -16,16 +16,14 @@ type ParamError struct {
 	Message string `json:"message"`
 }
 type XResponse struct {
-	MessageMap          map[int]string
-	OkCode              int
-	OkMessage           string
+	MessageMap map[int]string
+	//OkCode              int
+	//OkMessage           string
 	shortNameParamError string
 }
 
-func GenXResponse(okCode int, okMessage string, messageMap map[int]string) *XResponse {
+func GenXResponse(messageMap map[int]string) *XResponse {
 	commonResponse := XResponse{
-		OkCode:     okCode,
-		OkMessage:  okMessage,
 		MessageMap: messageMap,
 	}
 	commonResponse.shortNameParamError = getType((*ParamError)(nil))
@@ -38,7 +36,7 @@ func getType(myvar interface{}) string {
 	return strings.ToLower(shortName)
 }
 
-func (t *XResponse) constructCommonResult2(respCode int, datas ...interface{}) (int, string, []ParamError, interface{}, interface{}) {
+func (t *XResponse) ConstructResult(respCode int, datas ...interface{}) (int, string, []ParamError, interface{}, interface{}) {
 	var code = respCode
 	var message string
 	var errorDetails []ParamError = nil
@@ -99,9 +97,6 @@ func (t *XResponse) constructCommonResult2(respCode int, datas ...interface{}) (
 		}
 	}
 	if len(message) <= 0 {
-		if code == t.OkCode {
-			message = t.OkMessage
-		}
 		tmpMessage := ""
 		if t.MessageMap != nil && len(t.MessageMap) > 0 {
 			tmpMessage = t.MessageMap[code]
