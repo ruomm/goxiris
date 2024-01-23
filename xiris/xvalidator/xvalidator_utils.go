@@ -1,6 +1,7 @@
 package xvalidator
 
 import (
+	"errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/ruomm/goxframework/gox/corex"
 	"github.com/ruomm/goxiris/xiris/configx"
@@ -8,6 +9,16 @@ import (
 	"reflect"
 	"regexp"
 	"time"
+)
+
+const (
+	// 正则
+	UserNameRegexp = `^[a-zA-Z][a-zA-Z0-9_-]{3,15}$`
+	PasswordRegexp = `^[a-fA-F0-9]{32,64}$`
+	EmailRegexp    = `^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$`
+	//PhoneRegexp    = `^(13[0-9]|14[5|7]|15[0|1|2|3|4|5|6|7|8|9]|18[0|1|2|3|5|6|7|8|9])\d{8}$`
+	MobileRegexp = `^(1)\d{10}$`
+	PhoneRegexp  = "(^((1)\\d{10})$|^((\\d{7,8})|(\\d{4}|\\d{3})-(\\d{7,8})|(\\d{4}|\\d{3})-(\\d{7,8})-(\\d{4}|\\d{3}|\\d{2}|\\d{1})|(\\d{7,8})-(\\d{4}|\\d{3}|\\d{2}|\\d{1}))$)"
 )
 
 var (
@@ -30,7 +41,7 @@ func XValidatorInit() {
 *
 通过xvalid_error注入需要自定义显示的错误信息
 */
-func XValidator(u interface{}) (*configx.CommonCoreError, *[]configx.CommonParamError) {
+func XValidator(u interface{}) (error, *[]configx.CommonParamError) {
 	err := Validator.Struct(u)
 	return xValidatorProcessErr(u, err)
 }
@@ -39,13 +50,13 @@ func XValidator(u interface{}) (*configx.CommonCoreError, *[]configx.CommonParam
 *
 通过xvalid_error注入需要自定义显示的错误信息
 */
-func xValidatorProcessErr(u interface{}, err error) (*configx.CommonCoreError, *[]configx.CommonParamError) {
+func xValidatorProcessErr(u interface{}, err error) (error, *[]configx.CommonParamError) {
 	if err == nil {
 		return nil, nil
 	}
 	invalid, ok := err.(*validator.InvalidValidationError)
 	if ok {
-		return &configx.CommonCoreError{ErrorCode: configx.ERROR_CODE_PARAM_CHECK, Message: "参数校验错误:" + invalid.Error()}, nil
+		return errors.New("参数校验错误:" + invalid.Error()), nil
 	}
 	var paramErrors []configx.CommonParamError
 	validationErrs := err.(validator.ValidationErrors)
@@ -74,7 +85,7 @@ func xValidatorProcessErr(u interface{}, err error) (*configx.CommonCoreError, *
 		}
 		paramErrors = append(paramErrors, configx.CommonParamError{Field: errorKey, Message: errorInfo})
 	}
-	return &configx.CommonCoreError{ErrorCode: configx.ERROR_CODE_PARAM_CHECK}, &paramErrors
+	return errors.New("参数校验错误:" + invalid.Error()), &paramErrors
 }
 
 // 驼峰转下划线工具
@@ -92,25 +103,25 @@ func xValid_Register_CompanyId(fl validator.FieldLevel) bool {
 
 // 必须是用户名
 func xValid_Register_UserName(fl validator.FieldLevel) bool {
-	verificationStr := configx.UserNameRegexp
+	verificationStr := UserNameRegexp
 	return xValid_Register_Regex(fl, verificationStr)
 }
 
 // 必须是密码
 func xValid_Register_Password(fl validator.FieldLevel) bool {
-	verificationStr := configx.PasswordRegexp
+	verificationStr := PasswordRegexp
 	return xValid_Register_Regex(fl, verificationStr)
 }
 
 // 必须手机号码
 func xValid_Register_Mobile(fl validator.FieldLevel) bool {
-	verificationStr := configx.MobileRegexp
+	verificationStr := MobileRegexp
 	return xValid_Register_Regex(fl, verificationStr)
 }
 
 // 必须电话号码
 func xValid_Register_Phone(fl validator.FieldLevel) bool {
-	verificationStr := configx.PhoneRegexp
+	verificationStr := PhoneRegexp
 	return xValid_Register_Regex(fl, verificationStr)
 }
 

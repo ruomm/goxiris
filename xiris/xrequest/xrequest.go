@@ -7,6 +7,7 @@
 package xrequest
 
 import (
+	"errors"
 	"github.com/kataras/iris/v12"
 	"github.com/ruomm/goxframework/gox/refxstandard"
 	"github.com/ruomm/goxiris/xiris/configx"
@@ -15,7 +16,7 @@ import (
 
 const xRequest_Parse_Param_COMMON = "xreq_param"
 
-func XRequestParse(pCtx iris.Context, req interface{}) (*configx.CommonCoreError, *[]configx.CommonParamError) {
+func XRequestParse(pCtx iris.Context, req interface{}) (error, *[]configx.CommonParamError) {
 	// 解析参数
 	err := xReq_parse(pCtx, req)
 	if err != nil {
@@ -24,11 +25,11 @@ func XRequestParse(pCtx iris.Context, req interface{}) (*configx.CommonCoreError
 	// 验证参数
 	return xvalidator.XValidator(req)
 }
-func xReq_parse(ctx iris.Context, req interface{}) *configx.CommonCoreError {
+func xReq_parse(ctx iris.Context, req interface{}) error {
 	if "POST" == ctx.Method() || "PUT" == ctx.Method() {
 		err := ctx.ReadJSON(&req)
 		if err != nil {
-			return &configx.CommonCoreError{ErrorCode: configx.ERROR_CODE_PARAM_CHECK, Message: "解析参数失败"}
+			return errors.New("解析参数失败")
 		}
 	} else if "GET" != ctx.Method() {
 		ctx.ReadJSON(&req)
@@ -47,6 +48,11 @@ func xReq_parse(ctx iris.Context, req interface{}) *configx.CommonCoreError {
 			return nil, nil
 		}
 	})
-	refxstandard.XRefHandlerCopy(xrefHander, &req, refxstandard.XrefOptTag(xRequest_Parse_Param_COMMON))
-	return nil
+	errG, transFailsKeys := refxstandard.XRefHandlerCopy(xrefHander, &req, refxstandard.XrefOptTag(xRequest_Parse_Param_COMMON))
+	if errG != nil || len(transFailsKeys) > 0 {
+		return errors.New("解析参数失败")
+	} else {
+		return nil
+	}
+
 }
