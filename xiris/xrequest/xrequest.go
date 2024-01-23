@@ -27,12 +27,12 @@ func XRequestParse(pCtx iris.Context, req interface{}) (error, *[]xrespnse.Param
 }
 func xReq_parse(ctx iris.Context, req interface{}) error {
 	if "POST" == ctx.Method() || "PUT" == ctx.Method() {
-		err := ctx.ReadJSON(&req)
+		err := ctx.ReadJSON(req)
 		if err != nil {
 			return errors.New("解析参数失败")
 		}
 	} else if "GET" != ctx.Method() {
-		ctx.ReadJSON(&req)
+		ctx.ReadJSON(req)
 		//if err != nil {
 		//	return &xrespnse.CommonCoreError{ErrorCode: common.ERROR_CODE_PARAM_CHECK, Message: "解析参数失败"}
 		//}
@@ -48,7 +48,7 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 			return nil, nil
 		}
 	})
-	errG, transFailsKeys := refxstandard.XRefHandlerCopy(xrefHander, &req, refxstandard.XrefOptTag(xRequest_Parse_Param_COMMON))
+	errG, transFailsKeys := refxstandard.XRefHandlerCopy(xrefHander, req, refxstandard.XrefOptTag(xRequest_Parse_Param_COMMON))
 	if errG != nil || len(transFailsKeys) > 0 {
 		return errors.New("解析参数失败")
 	} else {
