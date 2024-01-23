@@ -85,7 +85,7 @@ func xValidatorProcessErr(u interface{}, err error) (error, *[]xrespnse.ParamErr
 		}
 		paramErrors = append(paramErrors, xrespnse.ParamError{Field: errorKey, Message: errorInfo})
 	}
-	return errors.New("参数校验错误:" + invalid.Error()), &paramErrors
+	return errors.New("参数校验错误"), &paramErrors
 }
 
 // 驼峰转下划线工具
