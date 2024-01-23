@@ -4,7 +4,7 @@
  * @create 2024/1/23 10:01
  * @version 1.0
  */
-package xrespnse
+package xresponse
 
 import (
 	"reflect"
@@ -70,7 +70,7 @@ func (t *XResponse) ConstructResult(respCode int, datas ...interface{}) (int, st
 			}
 			message = actualValue.Interface().(string)
 		} else if actualKind == reflect.Slice {
-			actualTypeName := strings.ToLower(actualValue.String())
+			actualTypeName := strings.ToLower(actualValue.Type().String())
 			if strings.HasSuffix(actualTypeName, t.shortNameParamError) {
 				tmpErrorDetails := actualValue.Interface().([]ParamError)
 				if len(tmpErrorDetails) <= 0 {
@@ -87,7 +87,7 @@ func (t *XResponse) ConstructResult(respCode int, datas ...interface{}) (int, st
 				datalist = datas[i]
 			}
 		} else if actualKind == reflect.Struct {
-			actualTypeName := strings.ToLower(actualValue.String())
+			actualTypeName := strings.ToLower(actualValue.Type().String())
 			if strings.HasSuffix(actualTypeName, t.shortNameParamError) {
 				tmpErrorDetail := actualValue.Interface().(ParamError)
 				errorDetails = append(errorDetails, tmpErrorDetail)

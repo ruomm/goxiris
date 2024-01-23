@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/ruomm/goxframework/gox/corex"
-	"github.com/ruomm/goxiris/xiris/xrespnse"
+	"github.com/ruomm/goxiris/xiris/xresponse"
 	"log"
 	"reflect"
 	"regexp"
@@ -41,7 +41,7 @@ func XValidatorInit() {
 *
 通过xvalid_error注入需要自定义显示的错误信息
 */
-func XValidator(u interface{}) (error, *[]xrespnse.ParamError) {
+func XValidator(u interface{}) (error, *[]xresponse.ParamError) {
 	err := Validator.Struct(u)
 	return xValidatorProcessErr(u, err)
 }
@@ -50,7 +50,7 @@ func XValidator(u interface{}) (error, *[]xrespnse.ParamError) {
 *
 通过xvalid_error注入需要自定义显示的错误信息
 */
-func xValidatorProcessErr(u interface{}, err error) (error, *[]xrespnse.ParamError) {
+func xValidatorProcessErr(u interface{}, err error) (error, *[]xresponse.ParamError) {
 	if err == nil {
 		return nil, nil
 	}
@@ -58,7 +58,7 @@ func xValidatorProcessErr(u interface{}, err error) (error, *[]xrespnse.ParamErr
 	if ok {
 		return errors.New("参数校验错误:" + invalid.Error()), nil
 	}
-	var paramErrors []xrespnse.ParamError
+	var paramErrors []xresponse.ParamError
 	validationErrs := err.(validator.ValidationErrors)
 	for _, validationErr := range validationErrs {
 		fieldName := validationErr.Field() //获取是哪个字段不符合格式
@@ -83,7 +83,7 @@ func xValidatorProcessErr(u interface{}, err error) (error, *[]xrespnse.ParamErr
 		if errorInfo == "" {
 			errorInfo = validationErr.Error()
 		}
-		paramErrors = append(paramErrors, xrespnse.ParamError{Field: errorKey, Message: errorInfo})
+		paramErrors = append(paramErrors, xresponse.ParamError{Field: errorKey, Message: errorInfo})
 	}
 	return errors.New("参数校验错误"), &paramErrors
 }
