@@ -10,13 +10,13 @@ import (
 	"errors"
 	"github.com/kataras/iris/v12"
 	"github.com/ruomm/goxframework/gox/refxstandard"
-	"github.com/ruomm/goxiris/xiris/xrespnse"
+	"github.com/ruomm/goxiris/xiris/xresponse"
 	"github.com/ruomm/goxiris/xiris/xvalidator"
 )
 
 const xRequest_Parse_Param_COMMON = "xreq_param"
 
-func XRequestParse(pCtx iris.Context, req interface{}) (error, *[]xrespnse.ParamError) {
+func XRequestParse(pCtx iris.Context, req interface{}) (error, *[]xresponse.ParamError) {
 	// 解析参数
 	err := xReq_parse(pCtx, req)
 	if err != nil {
