@@ -3,11 +3,11 @@ package xjwt
 import (
 	"fmt"
 	"github.com/kataras/iris/v12"
+	"github.com/ruomm/goxframework/gox/corex"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net"
 	"reflect"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -204,62 +204,7 @@ func (t *XjwtHander) verifyApiConfig(ctx iris.Context, fullURI string, reqMethod
 	// 判断规则是否通过
 	apiVerfiyResult := ApiVerfiyResult{TraceIdKey: t.webApiConfigs.TraceIdKey, TraceTsKey: t.webApiConfigs.TraceTsKey, Uri: webUriConfig.Uri, UriAbs: webUriConfig.UriAbs, ApiPass: false, Method_Pass: false, IpAllow_Pass: false, Mode: parseAuthMode(webUriConfig.DefaultMode)}
 	for _, apiConfig := range *(webUriConfig.ApiConfigs) {
-		if strings.HasPrefix(apiConfig.Api, "^") || strings.HasSuffix(apiConfig.Api, "$") {
-			//使用正则校验
-			isMatch, err := regexp.MatchString(apiConfig.Api, relativeURI)
-			if err == nil && isMatch {
-				apiVerfiyResult.ApiPass = true
-				apiVerfiyResult.Method_Pass = verifyRequestMethod(apiConfig.Method, reqMethod)
-				apiVerfiyResult.IpAllow_Pass = verfiyIPAllow(ipRemoteAddr, apiConfig.IpAllow)
-				apiVerfiyResult.Mode = parseAuthMode(apiConfig.Mode)
-				if apiVerfiyResult.Method_Pass {
-					break
-				}
-			}
-		} else if strings.HasPrefix(apiConfig.Api, "*") && strings.HasSuffix(apiConfig.Api, "*") {
-			//使用头尾通配符匹配模式
-			fixUri := apiConfig.Api[1 : len(apiConfig.Api)-1]
-			if len(fixUri) <= 0 {
-				continue
-			} else if strings.Contains(relativeURI, fixUri) {
-				apiVerfiyResult.ApiPass = true
-				apiVerfiyResult.Method_Pass = verifyRequestMethod(apiConfig.Method, reqMethod)
-				apiVerfiyResult.IpAllow_Pass = verfiyIPAllow(ipRemoteAddr, apiConfig.IpAllow)
-				apiVerfiyResult.Mode = parseAuthMode(apiConfig.Mode)
-				if apiVerfiyResult.Method_Pass {
-					break
-				}
-			}
-		} else if strings.HasSuffix(apiConfig.Api, "*") {
-			//使用尾部通配符匹配模式
-			fixUri := apiConfig.Api[0 : len(apiConfig.Api)-1]
-			if len(fixUri) <= 0 {
-				continue
-			} else if strings.HasPrefix(relativeURI, fixUri) {
-				apiVerfiyResult.ApiPass = true
-				apiVerfiyResult.Method_Pass = verifyRequestMethod(apiConfig.Method, reqMethod)
-				apiVerfiyResult.IpAllow_Pass = verfiyIPAllow(ipRemoteAddr, apiConfig.IpAllow)
-				apiVerfiyResult.Mode = parseAuthMode(apiConfig.Mode)
-				if apiVerfiyResult.Method_Pass {
-					break
-				}
-			}
-		} else if strings.HasPrefix(apiConfig.Api, "*") {
-			//使用头部通配符匹配模式
-			fixUri := apiConfig.Api[1:len(apiConfig.Api)]
-			if len(fixUri) <= 0 {
-				continue
-			} else if strings.HasSuffix(relativeURI, fixUri) {
-				apiVerfiyResult.ApiPass = true
-				apiVerfiyResult.Method_Pass = verifyRequestMethod(apiConfig.Method, reqMethod)
-				apiVerfiyResult.IpAllow_Pass = verfiyIPAllow(ipRemoteAddr, apiConfig.IpAllow)
-				apiVerfiyResult.Mode = parseAuthMode(apiConfig.Mode)
-				if apiVerfiyResult.Method_Pass {
-					break
-				}
-			}
-		} else if apiConfig.Api == relativeURI {
-			//使用严格匹配模式
+		if corex.MatchStringCommon(apiConfig.Api, relativeURI) {
 			apiVerfiyResult.ApiPass = true
 			apiVerfiyResult.Method_Pass = verifyRequestMethod(apiConfig.Method, reqMethod)
 			apiVerfiyResult.IpAllow_Pass = verfiyIPAllow(ipRemoteAddr, apiConfig.IpAllow)
