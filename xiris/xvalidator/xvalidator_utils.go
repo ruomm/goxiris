@@ -26,16 +26,41 @@ var (
 	Validator *validator.Validate
 )
 
-func XValidatorInit() {
+func XValidatorInit() error {
 	Validator = validator.New()
-	Validator.RegisterValidation("xcompanyid", xValid_Register_CompanyId)
-	Validator.RegisterValidation("xlimitstr", xValid_Register_LimitStr)
-	Validator.RegisterValidation("xusername", xValid_Register_UserName)
-	Validator.RegisterValidation("xpassword", xValid_Register_Password)
-	Validator.RegisterValidation("xphone", xValid_Register_Phone)
-	Validator.RegisterValidation("xmobile", xValid_Register_Mobile)
-	Validator.RegisterValidation("xtafter", xValid_DateTime_AfterCurrent)
-	Validator.RegisterValidation("xtbefore", xValid_DateTime_BeforeCurrent)
+	err := Validator.RegisterValidation("xcompanyid", xValid_Register_CompanyId)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xlimitstr", xValid_Register_LimitStr)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xusername", xValid_Register_UserName)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xpassword", xValid_Register_Password)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xphone", xValid_Register_Phone)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xmobile", xValid_Register_Mobile)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xtafter", xValid_DateTime_AfterCurrent)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xtbefore", xValid_DateTime_BeforeCurrent)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 /*
