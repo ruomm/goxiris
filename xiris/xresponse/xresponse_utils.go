@@ -42,7 +42,8 @@ func (t *XResponse) ConstructResult(respCode int, datas ...interface{}) (int, st
 	var errorDetails []ParamError = nil
 	var data interface{} = nil
 	var datalist interface{} = nil
-
+	var dataOther interface{} = nil
+	messageHasRead := false
 	for i := 0; i < len(datas); i++ {
 		origVal := datas[i]
 		if nil == origVal {
@@ -62,13 +63,19 @@ func (t *XResponse) ConstructResult(respCode int, datas ...interface{}) (int, st
 			if intType != actualValue.Type() {
 				actualValue = actualValue.Convert(intType)
 			}
-			code = actualValue.Interface().(int)
+			dataOther = actualValue.Interface().(int)
 		} else if actualKind == reflect.String {
 			stringType := reflect.TypeOf("")
 			if stringType != actualValue.Type() {
 				actualValue = actualValue.Convert(stringType)
 			}
-			message = actualValue.Interface().(string)
+			if messageHasRead {
+				dataOther = actualValue.Interface().(string)
+			} else {
+				messageHasRead = true
+				message = actualValue.Interface().(string)
+			}
+
 		} else if actualKind == reflect.Slice {
 			actualTypeName := strings.ToLower(actualValue.Type().String())
 			if strings.HasSuffix(actualTypeName, t.shortNameParamError) {
@@ -85,6 +92,8 @@ func (t *XResponse) ConstructResult(respCode int, datas ...interface{}) (int, st
 				}
 			} else if strings.HasSuffix(actualTypeName, "vo") || strings.HasSuffix(actualTypeName, "data") || strings.HasSuffix(actualTypeName, "resp") || strings.HasSuffix(actualTypeName, "result") {
 				datalist = datas[i]
+			} else {
+				dataOther = datas[i]
 			}
 		} else if actualKind == reflect.Struct {
 			actualTypeName := strings.ToLower(actualValue.Type().String())
@@ -93,7 +102,11 @@ func (t *XResponse) ConstructResult(respCode int, datas ...interface{}) (int, st
 				errorDetails = append(errorDetails, tmpErrorDetail)
 			} else if strings.HasSuffix(actualTypeName, "vo") || strings.HasSuffix(actualTypeName, "data") || strings.HasSuffix(actualTypeName, "resp") || strings.HasSuffix(actualTypeName, "result") {
 				data = datas[i]
+			} else {
+				dataOther = datas[i]
 			}
+		} else {
+			dataOther = datas[i]
 		}
 	}
 	if len(message) <= 0 {
@@ -107,5 +120,9 @@ func (t *XResponse) ConstructResult(respCode int, datas ...interface{}) (int, st
 			message = "未定义错误"
 		}
 	}
-	return code, message, errorDetails, data, datalist
+	if data == nil && datalist == nil {
+		return code, message, errorDetails, dataOther, nil
+	} else {
+		return code, message, errorDetails, data, datalist
+	}
 }
