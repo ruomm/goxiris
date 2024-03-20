@@ -46,13 +46,33 @@ type XjwtHander struct {
 	config        string
 	webApiConfigs *WebApiConfigs
 	authHander    XjwAuthHander
+	openMode      bool
 }
 
 func (t *XjwtHander) UseAuthHander(authHander XjwAuthHander) {
 	t.authHander = authHander
 }
 
+// 不加载API接口配置文件，只做traceId，TraceTs缓存
+func (t *XjwtHander) LoadConfigOpen(contextPath string, traceIdKey string, traceTsKey string) error {
+	t.openMode = true
+	webAPiConfigsByYaml := WebApiConfigs{}
+	if contextPath != "" {
+		webAPiConfigsByYaml.WebContextPath = contextPath
+	}
+	if traceIdKey != "" {
+		webAPiConfigsByYaml.TraceIdKey = traceIdKey
+	}
+	if traceTsKey != "" {
+		webAPiConfigsByYaml.TraceTsKey = traceTsKey
+	}
+	t.webApiConfigs = &webAPiConfigsByYaml
+	return nil
+}
+
+// 加载API接口配置文件
 func (t *XjwtHander) LoadConfigByYaml(confYaml string, contextPath string, traceIdKey string, traceTsKey string) error {
+	t.openMode = false
 	byteData, err := ioutil.ReadFile(getAbsDir(confYaml))
 	if err != nil {
 		panic(fmt.Sprintf("Web XjwtHander load config form yaml file err:%v", err))
@@ -125,39 +145,45 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 		if t.webApiConfigs.TraceTsKey != "" {
 			ctx.Request().Header.Set(t.webApiConfigs.TraceTsKey, strconv.FormatInt(time.Now().UnixMilli(), 10))
 		}
-		var apiVerifyResult *ApiVerfiyResult = nil
-		for _, webUriConfig := range t.webApiConfigs.WebApiConfigs {
-			tmpVerifyResult := t.verifyApiConfig(ctx, fullURI, reqMethod, &webUriConfig)
-			if nil != tmpVerifyResult {
-				apiVerifyResult = tmpVerifyResult
-				break
-			}
-		}
-		if nil == apiVerifyResult {
-			gobalUriAbs, _ := parseUrlWithContextPath(t.webApiConfigs.WebContextPath, "")
-			gobalMode := parseAuthMode(t.webApiConfigs.DefaultMode)
-			gobalAuthToken := ""
-			if gobalMode == AUTH_MAY || gobalMode == AUTH_FORCE {
-				gobalAuthToken = getAccessToken(ctx, t.webApiConfigs.CookieAuthKey, t.webApiConfigs.HeaderAuthKey, t.webApiConfigs.AuthInfoHeader)
-			}
-			gobalApiVerifyResult := ApiVerfiyResult{
-				TraceIdKey: t.webApiConfigs.TraceIdKey,
-				TraceTsKey: t.webApiConfigs.TraceTsKey,
-				Uri:        "",
-				UriAbs:     gobalUriAbs,
-				ApiPass:    false,
-				Mode:       gobalMode,
-				AuthToken:  gobalAuthToken,
-			}
-			apiVerifyResult = &gobalApiVerifyResult
-		}
 		authPassResult := false
-		if apiVerifyResult.Mode == AUTH_OPEN {
+		if t.openMode {
 			authPassResult = true
+		} else {
+			var apiVerifyResult *ApiVerfiyResult = nil
+			for _, webUriConfig := range t.webApiConfigs.WebApiConfigs {
+				tmpVerifyResult := t.verifyApiConfig(ctx, fullURI, reqMethod, &webUriConfig)
+				if nil != tmpVerifyResult {
+					apiVerifyResult = tmpVerifyResult
+					break
+				}
+			}
+			if nil == apiVerifyResult {
+				gobalUriAbs, _ := parseUrlWithContextPath(t.webApiConfigs.WebContextPath, "")
+				gobalMode := parseAuthMode(t.webApiConfigs.DefaultMode)
+				gobalAuthToken := ""
+				if gobalMode == AUTH_MAY || gobalMode == AUTH_FORCE {
+					gobalAuthToken = getAccessToken(ctx, t.webApiConfigs.CookieAuthKey, t.webApiConfigs.HeaderAuthKey, t.webApiConfigs.AuthInfoHeader)
+				}
+				gobalApiVerifyResult := ApiVerfiyResult{
+					TraceIdKey: t.webApiConfigs.TraceIdKey,
+					TraceTsKey: t.webApiConfigs.TraceTsKey,
+					Uri:        "",
+					UriAbs:     gobalUriAbs,
+					ApiPass:    false,
+					Mode:       gobalMode,
+					AuthToken:  gobalAuthToken,
+				}
+				apiVerifyResult = &gobalApiVerifyResult
+			}
+
+			if apiVerifyResult.Mode == AUTH_OPEN {
+				authPassResult = true
+			}
+			if nil != t.authHander {
+				authPassResult = t.authHander(ctx, apiVerifyResult)
+			}
 		}
-		if nil != t.authHander {
-			authPassResult = t.authHander(ctx, apiVerifyResult)
-		}
+
 		//传递到后续处理器
 		for {
 			h := ctx.NextHandler()
