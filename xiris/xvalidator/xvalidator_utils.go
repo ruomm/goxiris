@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	xRequest_Parse_Param_COMMON = "xreq_param"
 	// 正则
 	UserNameRegexp = `^[a-zA-Z][a-zA-Z0-9_-]{3,15}$`
 	PasswordRegexp = `^[a-fA-F0-9]{32,64}$`
@@ -77,7 +78,13 @@ func xValidatorProcessErr(u interface{}, err error) (error, *[]xresponse.ParamEr
 			if corex.TagIsValid(jsonName) {
 				errorKey = jsonName
 			} else {
-				errorKey = fieldName
+				xreqTag := field.Tag.Get(xRequest_Parse_Param_COMMON)
+				xreqKey, _ := corex.ParseTagToNameOption(xreqTag)
+				if corex.TagIsValid(xreqKey) {
+					errorKey = xreqKey
+				} else {
+					errorKey = fieldName
+				}
 			}
 		}
 		if errorInfo == "" {
