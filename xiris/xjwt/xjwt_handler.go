@@ -178,13 +178,18 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 		}
 		if t.webApiConfigs.UriHeaderKey != "" {
 			absURI := ctx.AbsoluteURI("/")
-			if len(absURI) > 0 {
-				if t.webApiConfigs.ToResponseHeader {
-					ctx.Header(t.webApiConfigs.UriHeaderKey, absURI)
-				} else {
-					ctx.Request().Header.Set(t.webApiConfigs.UriHeaderKey, absURI)
-				}
+			if t.webApiConfigs.ToResponseHeader {
+				ctx.Header(t.webApiConfigs.UriHeaderKey, absURI)
+			} else {
+				ctx.Request().Header.Set(t.webApiConfigs.UriHeaderKey, absURI)
 			}
+			//if len(absURI) > 0 {
+			//	if t.webApiConfigs.ToResponseHeader {
+			//		ctx.Header(t.webApiConfigs.UriHeaderKey, absURI)
+			//	} else {
+			//		ctx.Request().Header.Set(t.webApiConfigs.UriHeaderKey, absURI)
+			//	}
+			//}
 
 		}
 		authPassResult := false
