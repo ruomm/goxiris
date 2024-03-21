@@ -73,14 +73,17 @@ func (t *XTraceClient) ToTraceContext(uCtx iris.Context) *context.Context {
 	traceId := ""
 	userIdStr := ""
 	uriStr := ""
+	tsHeader := uCtx.GetHeader(t.HeaderKeyTs)
 	if t.ByResponseHeader {
 		traceId = uCtx.ResponseWriter().Header().Get(t.HeaderKeyTraceId)
 		userIdStr = uCtx.ResponseWriter().Header().Get(t.HeaderKeyAuthUserId)
 		uriStr = uCtx.ResponseWriter().Header().Get(t.HeaderKeyUri)
+		tsHeader = uCtx.ResponseWriter().Header().Get(t.HeaderKeyTs)
 	} else {
 		traceId = uCtx.GetHeader(t.HeaderKeyTraceId)
 		userIdStr = uCtx.GetHeader(t.HeaderKeyAuthUserId)
 		uriStr = uCtx.GetHeader(t.HeaderKeyUri)
+		tsHeader = uCtx.GetHeader(t.HeaderKeyTs)
 	}
 	var userId uint = 0
 	if len(userIdStr) > 0 {
@@ -89,12 +92,10 @@ func (t *XTraceClient) ToTraceContext(uCtx iris.Context) *context.Context {
 			userId = uint(tmpUserId)
 		}
 	}
-	//ts := strconv.ParseInt(uCtx.GetHeader(common.HeaderKeyTs), 10)
 	var tsArr []int64 = nil
 	var events []string = nil
-	tsHeader := uCtx.GetHeader(t.HeaderKeyTs)
 	if tsHeader != "" {
-		ts, err := strconv.ParseInt(uCtx.GetHeader(t.HeaderKeyTs), 10, 64)
+		ts, err := strconv.ParseInt(tsHeader, 10, 64)
 		if err != nil {
 			// 可能字符串 s 不是合法的整数格式，处理错误
 			fmt.Println(err)
