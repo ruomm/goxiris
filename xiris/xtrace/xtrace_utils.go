@@ -14,9 +14,19 @@ type XTraceClient struct {
 	HeaderKeyTraceId    string
 	HeaderKeyTs         string
 	HeaderKeyAuthUserId string
+	HeaderKeyUri        string
+	ByResponseHeader    bool
 }
 
-func GenXTraceClient(keyTrace string, headerKeyTraceId string, headerKeyTs string, headerKeyAuthUserId string) XTraceClient {
+/*
+* keyTrace：trace信息存储key
+headerKeyTraceId：traceId在header中的KEY
+headerKeyTs：ts在header中的KEY
+headerKeyUri：uri在header中的KEY
+headerKeyAuthUserId：userId在header中的KEY
+byResponseHeader：是否从responseHeader里面读取
+*/
+func GenXTraceClient(keyTrace string, headerKeyTraceId string, headerKeyTs string, headerKeyUri string, headerKeyAuthUserId string, byResponseHeader bool) XTraceClient {
 	realKeyTrace := keyTrace
 	if len(realKeyTrace) <= 0 {
 		realKeyTrace = "KEY_TRACE"
@@ -29,6 +39,10 @@ func GenXTraceClient(keyTrace string, headerKeyTraceId string, headerKeyTs strin
 	if len(realHeaderTs) <= 0 {
 		realHeaderTs = "X-IDR-Ts"
 	}
+	realHeaderUri := headerKeyUri
+	if len(realHeaderUri) <= 0 {
+		realHeaderUri = "X-IDR-Uri"
+	}
 	realHeaderUserId := headerKeyAuthUserId
 	if len(realHeaderUserId) <= 0 {
 		realHeaderUserId = "__auth_user_id"
@@ -38,6 +52,8 @@ func GenXTraceClient(keyTrace string, headerKeyTraceId string, headerKeyTs strin
 		HeaderKeyTraceId:    realHeaderTraceId,
 		HeaderKeyTs:         realHeaderTs,
 		HeaderKeyAuthUserId: realHeaderUserId,
+		HeaderKeyUri:        realHeaderUri,
+		ByResponseHeader:    byResponseHeader,
 	}
 	return xTraceClient
 }
@@ -46,6 +62,7 @@ type XTraceInfo struct {
 	TraceId string
 	TsArr   []int64
 	Events  []string
+	Uri     string
 	UserId  uint
 }
 
@@ -53,8 +70,18 @@ type XTraceInfo struct {
 * 获取一个带TraceInfo的Context环境变量
  */
 func (t *XTraceClient) ToTraceContext(uCtx iris.Context) *context.Context {
-	traceId := uCtx.GetHeader(t.HeaderKeyTraceId)
-	userIdStr := uCtx.GetHeader(t.HeaderKeyAuthUserId)
+	traceId := ""
+	userIdStr := ""
+	uriStr := ""
+	if t.ByResponseHeader {
+		traceId = uCtx.ResponseWriter().Header().Get(t.HeaderKeyTraceId)
+		userIdStr = uCtx.ResponseWriter().Header().Get(t.HeaderKeyAuthUserId)
+		uriStr = uCtx.ResponseWriter().Header().Get(t.HeaderKeyUri)
+	} else {
+		traceId = uCtx.GetHeader(t.HeaderKeyTraceId)
+		userIdStr = uCtx.GetHeader(t.HeaderKeyAuthUserId)
+		uriStr = uCtx.GetHeader(t.HeaderKeyUri)
+	}
 	var userId uint = 0
 	if len(userIdStr) > 0 {
 		tmpUserId, err := strconv.ParseUint(userIdStr, 10, 64)
@@ -83,6 +110,7 @@ func (t *XTraceClient) ToTraceContext(uCtx iris.Context) *context.Context {
 		TraceId: traceId,
 		TsArr:   tsArr,
 		Events:  events,
+		Uri:     uriStr,
 		UserId:  userId,
 	}
 	ctx := context.WithValue(context.Background(), t.ContextKeyTrace, &xTraceInfo)
@@ -105,6 +133,24 @@ func (t *XTraceClient) TraceIdFromContext(pCtx *context.Context) string {
 		return ""
 	}
 	return pTraceInfo.TraceId
+}
+
+/**
+* 从Context环境变量中获取uri
+ */
+func (t *XTraceClient) URIFromContext(pCtx *context.Context) string {
+	if pCtx == nil {
+		return ""
+	}
+	pTraceInfoAny := (*pCtx).Value(t.ContextKeyTrace)
+	if pTraceInfoAny == nil {
+		return ""
+	}
+	pTraceInfo := pTraceInfoAny.(*XTraceInfo)
+	if pTraceInfo == nil {
+		return ""
+	}
+	return pTraceInfo.Uri
 }
 
 /**

@@ -46,7 +46,6 @@ type XjwtHander struct {
 	config        string
 	webApiConfigs *WebApiConfigs
 	authHander    XjwAuthHander
-	openMode      bool
 }
 
 func (t *XjwtHander) UseAuthHander(authHander XjwAuthHander) {
@@ -54,9 +53,16 @@ func (t *XjwtHander) UseAuthHander(authHander XjwAuthHander) {
 }
 
 // 不加载API接口配置文件，只做traceId，TraceTs缓存
-func (t *XjwtHander) LoadConfigOpen(contextPath string, traceIdKey string, traceTsKey string) error {
-	t.openMode = true
+/**
+contextPath：服务器URI根路径
+traceIdKey：traceId的headerKey
+traceTsKey：traceTs的headerKey
+uriHeaderKey：uri的headerKey
+toResponseHeader：存储header信息是否到response的header里面
+*/
+func (t *XjwtHander) LoadConfigOpen(contextPath string, traceIdKey string, traceTsKey string, uriHeaderKey string, toResponseHeader bool) error {
 	webAPiConfigsByYaml := WebApiConfigs{}
+	webAPiConfigsByYaml.OpenMode = true
 	if contextPath != "" {
 		webAPiConfigsByYaml.WebContextPath = contextPath
 	}
@@ -66,13 +72,24 @@ func (t *XjwtHander) LoadConfigOpen(contextPath string, traceIdKey string, trace
 	if traceTsKey != "" {
 		webAPiConfigsByYaml.TraceTsKey = traceTsKey
 	}
+	if uriHeaderKey != "" {
+		webAPiConfigsByYaml.UriHeaderKey = uriHeaderKey
+	}
+	webAPiConfigsByYaml.ToResponseHeader = toResponseHeader
 	t.webApiConfigs = &webAPiConfigsByYaml
 	return nil
 }
 
 // 加载API接口配置文件
-func (t *XjwtHander) LoadConfigByYaml(confYaml string, contextPath string, traceIdKey string, traceTsKey string) error {
-	t.openMode = false
+/**
+confYaml:配置文件路径
+contextPath：服务器URI根路径
+traceIdKey：traceId的headerKey
+traceTsKey：traceTs的headerKey
+uriHeaderKey：uri的headerKey
+toResponseHeader：存储header信息是否到response的header里面
+*/
+func (t *XjwtHander) LoadConfigByYaml(confYaml string, contextPath string, traceIdKey string, traceTsKey string, uriHeaderKey string, toResponseHeader bool) error {
 	byteData, err := ioutil.ReadFile(getAbsDir(confYaml))
 	if err != nil {
 		panic(fmt.Sprintf("Web XjwtHander load config form yaml file err:%v", err))
@@ -84,6 +101,7 @@ func (t *XjwtHander) LoadConfigByYaml(confYaml string, contextPath string, trace
 		panic(fmt.Sprintf("Web XjwtHander read config yaml to WebAPiConfigs err:%v", err))
 		return err
 	}
+	webAPiConfigsByYaml.OpenMode = false
 	if contextPath != "" {
 		webAPiConfigsByYaml.WebContextPath = contextPath
 	}
@@ -93,6 +111,10 @@ func (t *XjwtHander) LoadConfigByYaml(confYaml string, contextPath string, trace
 	if traceTsKey != "" {
 		webAPiConfigsByYaml.TraceTsKey = traceTsKey
 	}
+	if uriHeaderKey != "" {
+		webAPiConfigsByYaml.UriHeaderKey = uriHeaderKey
+	}
+	webAPiConfigsByYaml.ToResponseHeader = toResponseHeader
 	for i := 0; i < len(webAPiConfigsByYaml.WebApiConfigs); i++ {
 		webAPiConfig := webAPiConfigsByYaml.WebApiConfigs[i]
 		absUri, errUri := parseUrlWithContextPath(webAPiConfigsByYaml.WebContextPath, webAPiConfig.Uri)
@@ -139,14 +161,31 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 			traceId := ctx.GetHeader(t.webApiConfigs.TraceIdKey)
 			if len(traceId) <= 0 {
 				traceId = "be-" + strconv.FormatInt(time.Now().Unix(), 10)
-				ctx.Request().Header.Set(t.webApiConfigs.TraceIdKey, traceId)
+				if t.webApiConfigs.ToResponseHeader {
+					ctx.Header(t.webApiConfigs.TraceIdKey, traceId)
+				} else {
+					ctx.Request().Header.Set(t.webApiConfigs.TraceIdKey, traceId)
+				}
+
 			}
 		}
 		if t.webApiConfigs.TraceTsKey != "" {
-			ctx.Request().Header.Set(t.webApiConfigs.TraceTsKey, strconv.FormatInt(time.Now().UnixMilli(), 10))
+			if t.webApiConfigs.ToResponseHeader {
+				ctx.Header(t.webApiConfigs.TraceTsKey, strconv.FormatInt(time.Now().UnixMilli(), 10))
+			} else {
+				ctx.Request().Header.Set(t.webApiConfigs.TraceTsKey, strconv.FormatInt(time.Now().UnixMilli(), 10))
+			}
+		}
+		if t.webApiConfigs.UriHeaderKey != "" {
+			if t.webApiConfigs.ToResponseHeader {
+				ctx.Header(t.webApiConfigs.UriHeaderKey, fullURI)
+			} else {
+				ctx.Request().Header.Set(t.webApiConfigs.UriHeaderKey, fullURI)
+			}
+
 		}
 		authPassResult := false
-		if t.openMode {
+		if t.webApiConfigs.OpenMode {
 			authPassResult = true
 		} else {
 			var apiVerifyResult *ApiVerfiyResult = nil

@@ -1,12 +1,18 @@
 package xjwt
 
 type WebApiConfigs struct {
+	// 是否公开模式，公开模式在不进行授权验证，只进行Header信息存储
+	OpenMode bool
 	//#web服务器的ContextPath，如是有值，则所有接口前缀加上ContextPath
 	WebContextPath string //`yaml:"webContextPath"`
 	//# 路径追踪的traceID,如需要日志路径追踪则需要提供
 	TraceIdKey string //`yaml:"traceIdKey"`
 	//# 毫秒时间存储的key，提供此值则往header的此key里面写入此毫秒时间戳，可以方便做时间切片
 	TraceTsKey string //`yaml:"traceTsKey"`
+	//# uri存储的key，提供此值则往header的此key里面写入此URI，可以方便做日志输出
+	UriHeaderKey string //`yaml:"uriHeaderKey"`
+	// # 是否存储到response的header里面
+	ToResponseHeader bool
 	//# 授权信息存储的字段
 	HeaderAuthKey string `yaml:"headerAuthKey"`
 	//# 授权信息在cookie里面存储的字段
