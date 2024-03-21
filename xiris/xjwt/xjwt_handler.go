@@ -176,21 +176,22 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 				ctx.Request().Header.Set(t.webApiConfigs.TraceTsKey, strconv.FormatInt(time.Now().UnixMilli(), 10))
 			}
 		}
-		if t.webApiConfigs.UriHeaderKey != "" {
+		if t.webApiConfigs.UriHeaderKey != "" && len(fullURI) > 0 {
+			relativeURI := ""
 			absURI := ctx.AbsoluteURI("/")
-			if t.webApiConfigs.ToResponseHeader {
-				ctx.Header(t.webApiConfigs.UriHeaderKey, absURI)
+			if len(fullURI) <= 0 || len(fullURI) <= len(absURI)+1 {
+				relativeURI = fullURI
+			} else if !strings.HasPrefix(fullURI, absURI) {
+				relativeURI = fullURI
 			} else {
-				ctx.Request().Header.Set(t.webApiConfigs.UriHeaderKey, absURI)
+				// 获取接口的相对路径
+				relativeURI = fullURI[len(absURI):]
 			}
-			//if len(absURI) > 0 {
-			//	if t.webApiConfigs.ToResponseHeader {
-			//		ctx.Header(t.webApiConfigs.UriHeaderKey, absURI)
-			//	} else {
-			//		ctx.Request().Header.Set(t.webApiConfigs.UriHeaderKey, absURI)
-			//	}
-			//}
-
+			if t.webApiConfigs.ToResponseHeader {
+				ctx.Header(t.webApiConfigs.UriHeaderKey, relativeURI)
+			} else {
+				ctx.Request().Header.Set(t.webApiConfigs.UriHeaderKey, relativeURI)
+			}
 		}
 		authPassResult := false
 		if t.webApiConfigs.OpenMode {
