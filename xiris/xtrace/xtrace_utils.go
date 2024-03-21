@@ -73,7 +73,7 @@ func (t *XTraceClient) ToTraceContext(uCtx iris.Context) *context.Context {
 	traceId := ""
 	userIdStr := ""
 	uriStr := ""
-	tsHeader := uCtx.GetHeader(t.HeaderKeyTs)
+	tsHeader := ""
 	if t.ByResponseHeader {
 		traceId = uCtx.ResponseWriter().Header().Get(t.HeaderKeyTraceId)
 		userIdStr = uCtx.ResponseWriter().Header().Get(t.HeaderKeyAuthUserId)
