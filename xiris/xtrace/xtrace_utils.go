@@ -194,7 +194,7 @@ func (t *XTraceClient) ToTraceContext(uCtx iris.Context) *context.Context {
 }
 
 /**
-* 从Context环境变量中获取traceId
+* 从Context环境变量中获取traceInfo
  */
 func (t *XTraceClient) GetTraceInfo(pCtx *context.Context) *XTraceInfo {
 	if pCtx == nil {
@@ -206,6 +206,47 @@ func (t *XTraceClient) GetTraceInfo(pCtx *context.Context) *XTraceInfo {
 	}
 	pTraceInfo := pTraceInfoAny.(*XTraceInfo)
 	return pTraceInfo
+}
+
+/**
+* 从Context环境变量中清理traceInfo
+ */
+func (t *XTraceClient) CleanTraceInfoAll(uCtx iris.Context) {
+	t.cleanTraceInfoCommon(uCtx, true)
+}
+
+/**
+* 从Context环境变量中清理traceInfo
+ */
+func (t *XTraceClient) CleanTraceInfoLite(uCtx iris.Context) {
+	t.cleanTraceInfoCommon(uCtx, false)
+}
+
+/**
+* 从Context环境变量中清理traceInfo
+ */
+func (t *XTraceClient) cleanTraceInfoCommon(uCtx iris.Context, fullClean bool) {
+	if uCtx == nil || !t.ByResponse {
+		return
+	}
+	if len(t.KeyTraceId) > 0 && fullClean {
+		uCtx.ResponseWriter().Header().Del(t.KeyTraceId)
+	}
+	if len(t.KeyTs) > 0 {
+		uCtx.ResponseWriter().Header().Del(t.KeyTs)
+	}
+	if len(t.KeyUri) > 0 {
+		uCtx.ResponseWriter().Header().Del(t.KeyUri)
+	}
+	if len(t.KeyUserId) > 0 && fullClean {
+		uCtx.ResponseWriter().Header().Del(t.KeyUserId)
+	}
+	if len(t.KeyUserName) > 0 && fullClean {
+		uCtx.ResponseWriter().Header().Del(t.KeyUserName)
+	}
+	if len(t.KeyRoleId) > 0 && fullClean {
+		uCtx.ResponseWriter().Header().Del(t.KeyRoleId)
+	}
 }
 
 /**
