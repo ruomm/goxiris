@@ -124,7 +124,7 @@ func xValidatorProcessErr(u interface{}, err error) (error, *[]xresponse.ParamEr
 			errIndex := strings.Index(errorMsg, errTag)
 			if keyIndex >= 0 && errIndex > keyIndex {
 				keyStr := strings.TrimSpace(errorMsg[len(keyTag):errIndex])
-				errStr := strings.TrimSpace(errTag[errIndex+len(errTag):])
+				errStr := strings.TrimSpace(errorMsg[errIndex+len(errTag):])
 				if strings.HasPrefix(keyStr, "'") {
 					keyStr = keyStr[1:]
 				}
