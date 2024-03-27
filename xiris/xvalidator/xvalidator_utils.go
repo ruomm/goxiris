@@ -131,6 +131,7 @@ func xValidatorProcessErr(u interface{}, err error) (error, *[]xresponse.ParamEr
 				if strings.HasSuffix(keyStr, "'") {
 					keyStr = keyStr[0 : len(keyStr)-1]
 				}
+				keyStr = transFieldKey(keyStr)
 				if len(keyStr) > 0 {
 					errorKey = keyStr
 					errorInfo = errStr
@@ -155,6 +156,35 @@ func xValidatorProcessErr(u interface{}, err error) (error, *[]xresponse.ParamEr
 //	snake = xvalid_matchAllCap.ReplaceAllString(snake, "${1}_${2}")  //拆分单词
 //	return strings.ToLower(snake)                                    //全部转小写
 //}
+
+func transFieldKey(keyStr string) string {
+	if len(keyStr) <= 1 {
+		return keyStr
+	}
+	keys := strings.Split(keyStr, ".")
+	if len(keys) <= 1 {
+		return strings.ToLower(keyStr[0:1]) + keyStr[1:]
+	} else {
+		var build strings.Builder
+		for i, tmpKey := range keys {
+			if i <= 0 {
+				continue
+			}
+			if i > 1 {
+				build.WriteString(".")
+			}
+			tmpLen := len(tmpKey)
+			if tmpLen <= 0 {
+				continue
+			} else if tmpLen == 1 {
+				build.WriteString(tmpKey)
+			} else {
+				build.WriteString(strings.ToLower(tmpKey[0:1]) + tmpKey[1:])
+			}
+		}
+		return build.String()
+	}
+}
 
 func xValid_Register_CompanyId(fl validator.FieldLevel) bool {
 	verificationStr := `^[a-z0-9\-]*$`
