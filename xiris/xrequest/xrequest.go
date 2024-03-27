@@ -48,7 +48,7 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 			return nil, nil
 		}
 	})
-	errG, transFailsKeys := refxstandard.XRefHandlerCopy(xrefHander, req, refxstandard.XrefOptTag(xRequest_Parse_Param_COMMON))
+	errG, transFailsKeys := refxstandard.XRefHandlerCopy(xrefHander, req, refxstandard.XrefOptTag(xRequest_Parse_Param_COMMON), refxstandard.XrefOptCheckUnsigned(true))
 	if errG != nil || len(transFailsKeys) > 0 {
 		return errors.New("解析参数失败")
 	} else {
