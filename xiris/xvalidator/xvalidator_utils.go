@@ -8,6 +8,7 @@ import (
 	"log"
 	"reflect"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -111,9 +112,36 @@ func xValidatorProcessErr(u interface{}, err error) (error, *[]xresponse.ParamEr
 					errorKey = fieldName
 				}
 			}
+		} else {
+
 		}
 		if errorInfo == "" {
-			errorInfo = validationErr.Error()
+			errorMsg := validationErr.Error()
+			// Key: 'ConfigSpecCreateReq.DataList[1].SpecId' Error:Field validation for 'SpecId' failed on the 'min' tag
+			keyTag := "Key:"
+			errTag := "Error:"
+			keyIndex := strings.Index(errorMsg, keyTag)
+			errIndex := strings.Index(errorMsg, errTag)
+			if keyIndex >= 0 && errIndex > keyIndex {
+				keyStr := strings.TrimSpace(errorMsg[len(keyTag):errIndex])
+				errStr := strings.TrimSpace(errTag[errIndex+len(errTag):])
+				if strings.HasPrefix(keyStr, "'") {
+					keyStr = keyStr[1:]
+				}
+				if strings.HasSuffix(keyStr, "'") {
+					keyStr = keyStr[0 : len(keyStr)-1]
+				}
+				if len(keyStr) > 0 {
+					errorKey = keyStr
+					errorInfo = errStr
+				} else {
+					errorKey = fieldName
+					errorInfo = errorMsg
+				}
+			} else {
+				errorKey = fieldName
+				errorInfo = errorMsg
+			}
 		}
 		paramErrors = append(paramErrors, xresponse.ParamError{Field: errorKey, Message: errorInfo})
 	}
