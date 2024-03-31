@@ -101,7 +101,7 @@ func xValidatorProcessErr(u interface{}, err error) (error, *[]xresponse.ParamEr
 		errorKey := ""
 		if ok {
 			errorInfo = field.Tag.Get("xvalid_error") // 获取field对应的reg_error_info tag值
-			errorKeyByTag := xPraseRefxTagName(&field, "json")
+			errorKeyByTag := xPraseJsonTagName(&field)
 			if errorKeyByTag == "" {
 				errorKeyByTag = xPraseRefxTagName(&field, xRequest_Parse_Param)
 			}
@@ -151,9 +151,19 @@ func xValidatorProcessErr(u interface{}, err error) (error, *[]xresponse.ParamEr
 	return errors.New("参数校验错误"), &paramErrors
 }
 
+func xPraseJsonTagName(field *reflect.StructField) string {
+	refxTagInfo := field.Tag.Get("json")
+	refxTagName, _ := corex.ParseTagToNameOption(refxTagInfo)
+	if corex.TagIsValid(refxTagName) && refxTagName != "-" {
+		return refxTagName
+	} else {
+		return ""
+	}
+}
+
 func xPraseRefxTagName(field *reflect.StructField, refxTagKey string) string {
 	refxTagInfo := field.Tag.Get(refxTagKey)
-	refxTagName, _ := corex.ParseTagToNameOption(refxTagInfo)
+	refxTagName, _ := corex.ParseTagToNameOptionFenHao(refxTagInfo)
 	if corex.TagIsValid(refxTagName) && refxTagName != "-" {
 		return refxTagName
 	} else {
