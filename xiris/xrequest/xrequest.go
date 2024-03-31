@@ -14,7 +14,10 @@ import (
 	"github.com/ruomm/goxiris/xiris/xvalidator"
 )
 
-const xRequest_Parse_Param_COMMON = "xreq_param"
+// const xRequest_Parse_Param_COMMON = "xreq_param"
+const xRequest_Parse_Param = "xreq_param"
+const xRequest_Parse_Query = "xreq_query"
+const xRequest_Parse_Header = "xreq_header"
 
 func XRequestParse(pCtx iris.Context, req interface{}) (error, *[]xresponse.ParamError) {
 	// 解析参数
@@ -29,7 +32,7 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 	if "POST" == ctx.Method() || "PUT" == ctx.Method() {
 		err := ctx.ReadJSON(req)
 		if err != nil {
-			return errors.New("解析参数失败")
+			return errors.New("解析JSON参数失败")
 		}
 	} else if "GET" != ctx.Method() {
 		ctx.ReadJSON(req)
@@ -37,22 +40,44 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 		//	return &xrespnse.CommonCoreError{ErrorCode: common.ERROR_CODE_PARAM_CHECK, Message: "解析参数失败"}
 		//}
 	}
-	xrefHander := refxstandard.XrefHander(func(origKey string, key string) (interface{}, error) {
-		if ctx.URLParamExists(origKey) {
-			paramVal := ctx.URLParam(origKey)
-			return paramVal, nil
-		} else if ctx.Params().Exists(origKey) {
+	// 解析URI参数
+	xrefHanderParam := refxstandard.XrefHander(func(origKey string, key string) (interface{}, error) {
+		if ctx.Params().Exists(origKey) {
 			paramVal := ctx.Params().GetString(origKey)
 			return paramVal, nil
 		} else {
 			return nil, nil
 		}
 	})
-	errG, transFailsKeys := refxstandard.XRefHandlerCopy(xrefHander, req, refxstandard.XrefOptTag(xRequest_Parse_Param_COMMON), refxstandard.XrefOptCheckUnsigned(true))
-	if errG != nil || len(transFailsKeys) > 0 {
-		return errors.New("解析参数失败")
-	} else {
-		return nil
+	errGParam, transFailsKeysParam := refxstandard.XRefHandlerCopy(xrefHanderParam, req, refxstandard.XrefOptTag(xRequest_Parse_Param), refxstandard.XrefOptCheckUnsigned(true))
+	if errGParam != nil || len(transFailsKeysParam) > 0 {
+		return errors.New("解析URI参数失败")
 	}
-
+	// 解析query参数
+	xrefHanderQuery := refxstandard.XrefHander(func(origKey string, key string) (interface{}, error) {
+		if ctx.URLParamExists(origKey) {
+			paramVal := ctx.URLParam(origKey)
+			return paramVal, nil
+		} else {
+			return nil, nil
+		}
+	})
+	errGQuery, transFailsKeysQuery := refxstandard.XRefHandlerCopy(xrefHanderQuery, req, refxstandard.XrefOptTag(xRequest_Parse_Query), refxstandard.XrefOptCheckUnsigned(true))
+	if errGQuery != nil || len(transFailsKeysQuery) > 0 {
+		return errors.New("解析Query参数失败")
+	}
+	// 解析header参数
+	xrefHanderHeader := refxstandard.XrefHander(func(origKey string, key string) (interface{}, error) {
+		paramVal := ctx.GetHeader(origKey)
+		if len(paramVal) > 0 {
+			return paramVal, nil
+		} else {
+			return nil, nil
+		}
+	})
+	errGHeader, transFailsKeysHeader := refxstandard.XRefHandlerCopy(xrefHanderHeader, req, refxstandard.XrefOptTag(xRequest_Parse_Header), refxstandard.XrefOptCheckUnsigned(true))
+	if errGHeader != nil || len(transFailsKeysHeader) > 0 {
+		return errors.New("解析Header参数失败")
+	}
+	return nil
 }
