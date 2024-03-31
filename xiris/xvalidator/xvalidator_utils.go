@@ -13,7 +13,9 @@ import (
 )
 
 const (
-	xRequest_Parse_Param_COMMON = "xreq_param"
+	xRequest_Parse_Param  = "xreq_param"
+	xRequest_Parse_Query  = "xreq_query"
+	xRequest_Parse_Header = "xreq_header"
 	// 正则
 	UserNameRegexp = `^[a-zA-Z][a-zA-Z0-9_-]{3,15}$`
 	PasswordRegexp = `^[a-fA-F0-9]{32,64}$`
@@ -99,22 +101,22 @@ func xValidatorProcessErr(u interface{}, err error) (error, *[]xresponse.ParamEr
 		errorKey := ""
 		if ok {
 			errorInfo = field.Tag.Get("xvalid_error") // 获取field对应的reg_error_info tag值
-			jsonInfo := field.Tag.Get("json")
-			jsonName, _ := corex.ParseTagToNameOption(jsonInfo)
-			if corex.TagIsValid(jsonName) {
-				errorKey = jsonName
-			} else {
-				xreqTag := field.Tag.Get(xRequest_Parse_Param_COMMON)
-				xreqKey, _ := corex.ParseTagToNameOption(xreqTag)
-				if corex.TagIsValid(xreqKey) {
-					errorKey = xreqKey
-				} else {
-					errorKey = fieldName
-				}
+			errorKeyByTag := xPraseRefxTagName(&field, "json")
+			if errorKeyByTag == "" {
+				errorKeyByTag = xPraseRefxTagName(&field, xRequest_Parse_Param)
 			}
-		} else {
-
+			if errorKeyByTag == "" {
+				errorKeyByTag = xPraseRefxTagName(&field, xRequest_Parse_Query)
+			}
+			if errorKeyByTag == "" {
+				errorKeyByTag = xPraseRefxTagName(&field, xRequest_Parse_Header)
+			}
+			if errorKeyByTag == "" {
+				errorKeyByTag = fieldName
+			}
+			errorKey = errorKeyByTag
 		}
+
 		if errorInfo == "" {
 			errorMsg := validationErr.Error()
 			// Key: 'ConfigSpecCreateReq.DataList[1].SpecId' Error:Field validation for 'SpecId' failed on the 'min' tag
@@ -147,6 +149,16 @@ func xValidatorProcessErr(u interface{}, err error) (error, *[]xresponse.ParamEr
 		paramErrors = append(paramErrors, xresponse.ParamError{Field: errorKey, Message: errorInfo})
 	}
 	return errors.New("参数校验错误"), &paramErrors
+}
+
+func xPraseRefxTagName(field *reflect.StructField, refxTagKey string) string {
+	refxTagInfo := field.Tag.Get(refxTagKey)
+	refxTagName, _ := corex.ParseTagToNameOption(refxTagInfo)
+	if corex.TagIsValid(refxTagName) && refxTagName != "-" {
+		return refxTagName
+	} else {
+		return ""
+	}
 }
 
 // 驼峰转下划线工具
