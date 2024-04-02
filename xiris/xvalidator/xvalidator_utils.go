@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	xRequest_Parse_Param  = "xreq_param"
-	xRequest_Parse_Query  = "xreq_query"
-	xRequest_Parse_Header = "xreq_header"
+	xRequest_Parse_Param     = "xreq_param"
+	xRequest_Parse_Query     = "xreq_query"
+	xRequest_Parse_Header    = "xreq_header"
+	xRequest_Option_Response = "resp"
 	// 正则
 	UserNameRegexp = `^[a-zA-Z][a-zA-Z0-9_-]{3,15}$`
 	PasswordRegexp = `^[a-fA-F0-9]{32,64}$`

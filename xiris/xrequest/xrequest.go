@@ -9,15 +9,19 @@ package xrequest
 import (
 	"errors"
 	"github.com/kataras/iris/v12"
+	"github.com/ruomm/goxframework/gox/corex"
 	"github.com/ruomm/goxframework/gox/refxstandard"
 	"github.com/ruomm/goxiris/xiris/xresponse"
 	"github.com/ruomm/goxiris/xiris/xvalidator"
 )
 
-// const xRequest_Parse_Param_COMMON = "xreq_param"
-const xRequest_Parse_Param = "xreq_param"
-const xRequest_Parse_Query = "xreq_query"
-const xRequest_Parse_Header = "xreq_header"
+const (
+	//xRequest_Parse_Param_COMMON = "xreq_param"
+	xRequest_Parse_Param     = "xreq_param"
+	xRequest_Parse_Query     = "xreq_query"
+	xRequest_Parse_Header    = "xreq_header"
+	xRequest_Option_Response = "resp"
+)
 
 func XRequestParse(pCtx iris.Context, req interface{}) (error, *[]xresponse.ParamError) {
 	// 解析参数
@@ -41,7 +45,7 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 		//}
 	}
 	// 解析URI参数
-	xrefHanderParam := refxstandard.XrefHander(func(origKey string, key string) (interface{}, error) {
+	xrefHanderParam := refxstandard.XrefHander(func(origKey string, key string, cpOpt string) (interface{}, error) {
 		if ctx.Params().Exists(origKey) {
 			paramVal := ctx.Params().GetString(origKey)
 			return paramVal, nil
@@ -54,7 +58,7 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 		return errors.New("解析URI参数失败")
 	}
 	// 解析query参数
-	xrefHanderQuery := refxstandard.XrefHander(func(origKey string, key string) (interface{}, error) {
+	xrefHanderQuery := refxstandard.XrefHander(func(origKey string, key string, cpOpt string) (interface{}, error) {
 		if ctx.URLParamExists(origKey) {
 			paramVal := ctx.URLParam(origKey)
 			return paramVal, nil
@@ -67,12 +71,21 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 		return errors.New("解析Query参数失败")
 	}
 	// 解析header参数
-	xrefHanderHeader := refxstandard.XrefHander(func(origKey string, key string) (interface{}, error) {
-		paramVal := ctx.GetHeader(origKey)
-		if len(paramVal) > 0 {
-			return paramVal, nil
+	xrefHanderHeader := refxstandard.XrefHander(func(origKey string, key string, cpOpt string) (interface{}, error) {
+		if xTagContainKey(cpOpt, xRequest_Option_Response) {
+			paramVal := ctx.ResponseWriter().Header().Get(origKey)
+			if len(paramVal) > 0 {
+				return paramVal, nil
+			} else {
+				return nil, nil
+			}
 		} else {
-			return nil, nil
+			paramVal := ctx.GetHeader(origKey)
+			if len(paramVal) > 0 {
+				return paramVal, nil
+			} else {
+				return nil, nil
+			}
 		}
 	})
 	errGHeader, transFailsKeysHeader := refxstandard.XRefHandlerCopy(xrefHanderHeader, req, refxstandard.XrefOptTag(xRequest_Parse_Header), refxstandard.XrefOptCheckUnsigned(true))
@@ -80,4 +93,8 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 		return errors.New("解析Header参数失败")
 	}
 	return nil
+}
+
+func xTagContainKey(tagValue string, key string) bool {
+	return corex.TagOptions(tagValue).Contains(key)
 }
