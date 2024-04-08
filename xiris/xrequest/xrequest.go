@@ -48,7 +48,11 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 	xrefHanderParam := refxstandard.XrefHander(func(origKey string, key string, cpOpt string) (interface{}, error) {
 		if ctx.Params().Exists(origKey) {
 			paramVal := ctx.Params().GetString(origKey)
-			return paramVal, nil
+			if len(paramVal) > 0 {
+				return paramVal, nil
+			} else {
+				return nil, nil
+			}
 		} else {
 			return nil, nil
 		}
@@ -61,7 +65,11 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 	xrefHanderQuery := refxstandard.XrefHander(func(origKey string, key string, cpOpt string) (interface{}, error) {
 		if ctx.URLParamExists(origKey) {
 			paramVal := ctx.URLParam(origKey)
-			return paramVal, nil
+			if len(paramVal) > 0 {
+				return paramVal, nil
+			} else {
+				return nil, nil
+			}
 		} else {
 			return nil, nil
 		}
