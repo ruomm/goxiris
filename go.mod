@@ -6,7 +6,7 @@ require (
 	github.com/go-playground/validator/v10 v10.17.0
 	github.com/gomodule/redigo v1.8.9
 	github.com/kataras/iris/v12 v12.2.0
-	github.com/ruomm/goxframework v0.7.6
+	github.com/ruomm/goxframework v0.8.1
 	gopkg.in/yaml.v2 v2.4.0
 )
 
