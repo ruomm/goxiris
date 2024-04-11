@@ -7,6 +7,7 @@
 package xrequest
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/kataras/iris/v12"
 	"github.com/ruomm/goxframework/gox/corex"
@@ -33,16 +34,26 @@ func XRequestParse(pCtx iris.Context, req interface{}) (error, *[]xresponse.Para
 	return xvalidator.XValidator(req)
 }
 func xReq_parse(ctx iris.Context, req interface{}) error {
-	if "POST" == ctx.Method() || "PUT" == ctx.Method() {
-		err := ctx.ReadJSON(req)
+	//if "POST" == ctx.Method() || "PUT" == ctx.Method() {
+	//	err := ctx.ReadJSON(req)
+	//	if err != nil {
+	//		return errors.New("解析JSON参数失败")
+	//	}
+	//} else if "GET" != ctx.Method() {
+	//	ctx.ReadJSON(req)
+	//}
+
+	if "GET" != ctx.Method() {
+		body, err := ctx.GetBody()
 		if err != nil {
-			return errors.New("解析JSON参数失败")
+			return errors.New("读取请求body错误")
 		}
-	} else if "GET" != ctx.Method() {
-		ctx.ReadJSON(req)
-		//if err != nil {
-		//	return &xrespnse.CommonCoreError{ErrorCode: common.ERROR_CODE_PARAM_CHECK, Message: "解析参数失败"}
-		//}
+		if body != nil && len(body) > 0 {
+			errJSON := json.Unmarshal(body, req)
+			if errJSON != nil {
+				return errors.New("解析JSON参数失败")
+			}
+		}
 	}
 	// 解析URI参数
 	xrefHanderParam := refxstandard.XrefHander(func(origKey string, key string, cpOpt string) (interface{}, error) {
