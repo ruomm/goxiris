@@ -61,14 +61,17 @@ traceTsKey：traceTs的headerKey
 uriHeaderKey：uri的headerKey
 toResponseHeader：存储header信息是否到response的header里面
 */
-func (t *XjwtHander) LoadConfigOpen(contextPath string, traceIdKey string, traceTsKey string, uriHeaderKey string, toResponseHeader bool) error {
+func (t *XjwtHander) LoadConfigOpen(contextPath string, traceIdGetKey string, traceIdWriteKey string, traceTsKey string, uriHeaderKey string, toResponseHeader bool) error {
 	webAPiConfigsByYaml := WebApiConfigs{}
 	webAPiConfigsByYaml.OpenMode = true
 	if contextPath != "" {
 		webAPiConfigsByYaml.WebContextPath = contextPath
 	}
-	if traceIdKey != "" {
-		webAPiConfigsByYaml.TraceIdKey = traceIdKey
+	if traceIdGetKey != "" {
+		webAPiConfigsByYaml.TraceIdGetKey = traceIdGetKey
+	}
+	if traceIdWriteKey != "" {
+		webAPiConfigsByYaml.TraceIdKey = traceIdWriteKey
 	}
 	if traceTsKey != "" {
 		webAPiConfigsByYaml.TraceTsKey = traceTsKey
@@ -90,7 +93,7 @@ traceTsKey：traceTs的headerKey
 uriHeaderKey：uri的headerKey
 toResponseHeader：存储header信息是否到response的header里面
 */
-func (t *XjwtHander) LoadConfigByYaml(confYaml string, contextPath string, traceIdKey string, traceTsKey string, uriHeaderKey string, toResponseHeader bool) error {
+func (t *XjwtHander) LoadConfigByYaml(confYaml string, contextPath string, traceIdGetKey string, traceIdKey string, traceTsKey string, uriHeaderKey string, toResponseHeader bool) error {
 	byteData, err := ioutil.ReadFile(getAbsDir(confYaml))
 	if err != nil {
 		panic(fmt.Sprintf("Web XjwtHander load config form yaml file err:%v", err))
@@ -105,6 +108,9 @@ func (t *XjwtHander) LoadConfigByYaml(confYaml string, contextPath string, trace
 	webAPiConfigsByYaml.OpenMode = false
 	if contextPath != "" {
 		webAPiConfigsByYaml.WebContextPath = contextPath
+	}
+	if traceIdGetKey != "" {
+		webAPiConfigsByYaml.TraceIdGetKey = traceIdGetKey
 	}
 	if traceIdKey != "" {
 		webAPiConfigsByYaml.TraceIdKey = traceIdKey
@@ -158,8 +164,8 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 		reqMethod := ctx.Method()
 		fullURI := ctx.FullRequestURI()
 		// 判断traceIdKey不为空获取traceID
-		if t.webApiConfigs.TraceIdKey != "" {
-			traceId := ctx.GetHeader(t.webApiConfigs.TraceIdKey)
+		if t.webApiConfigs.TraceIdGetKey != "" {
+			traceId := ctx.GetHeader(t.webApiConfigs.TraceIdGetKey)
 			if len(traceId) <= 0 {
 				traceId = "be-" + strconv.FormatInt(time.Now().Unix(), 10)
 				if t.webApiConfigs.ToResponseHeader {

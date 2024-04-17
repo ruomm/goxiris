@@ -6,7 +6,8 @@ type WebApiConfigs struct {
 	//#web服务器的ContextPath，如是有值，则所有接口前缀加上ContextPath
 	WebContextPath string //`yaml:"webContextPath"`
 	//# 路径追踪的traceID,如需要日志路径追踪则需要提供
-	TraceIdKey string //`yaml:"traceIdKey"`
+	TraceIdGetKey string //`yaml:"traceIdKey"`
+	TraceIdKey    string //`yaml:"traceIdKey"`
 	//# 毫秒时间存储的key，提供此值则往header的此key里面写入此毫秒时间戳，可以方便做时间切片
 	TraceTsKey string //`yaml:"traceTsKey"`
 	//# uri存储的key，提供此值则往header的此key里面写入此URI，可以方便做日志输出
