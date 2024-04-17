@@ -217,7 +217,7 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 				gobalMode := parseAuthMode(t.webApiConfigs.DefaultMode)
 				gobalAuthToken := ""
 				if gobalMode == AUTH_MAY || gobalMode == AUTH_FORCE {
-					gobalAuthToken = getAccessToken(ctx, t.webApiConfigs.CookieAuthKey, t.webApiConfigs.HeaderAuthKey, t.webApiConfigs.AuthInfoHeader)
+					gobalAuthToken = getAccessToken(ctx, t.webApiConfigs.CookieAuthKey, t.webApiConfigs.HeaderAuthKey, t.webApiConfigs.UrlParamAuthKey, t.webApiConfigs.AuthInfoHeader)
 				}
 				gobalApiVerifyResult := ApiVerfiyResult{
 					TraceIdKey: t.webApiConfigs.TraceIdKey,
@@ -305,7 +305,7 @@ func (t *XjwtHander) verifyApiConfig(ctx iris.Context, fullURI string, reqMethod
 		apiVerfiyResult.Mode = parseAuthMode(webUriConfig.DefaultMode)
 	}
 	if apiVerfiyResult.Mode == AUTH_FORCE || apiVerfiyResult.Mode == AUTH_MAY {
-		apiVerfiyResult.AuthToken = getAccessToken(ctx, webUriConfig.CookieAuthKey, webUriConfig.HeaderAuthKey, webUriConfig.AuthInfoHeader)
+		apiVerfiyResult.AuthToken = getAccessToken(ctx, webUriConfig.CookieAuthKey, webUriConfig.HeaderAuthKey, t.webApiConfigs.UrlParamAuthKey, webUriConfig.AuthInfoHeader)
 	}
 	return &apiVerfiyResult
 }
@@ -415,7 +415,7 @@ func verifyRequestMethod(configMethod, reqMethod string) bool {
 }
 
 // 获取用户授权凭证信息
-func getAccessToken(ctx iris.Context, cookieAuthKey, headerAuthKey, authInfoHeader string) string {
+func getAccessToken(ctx iris.Context, cookieAuthKey, headerAuthKey, uriParamAuthKey string, authInfoHeader string) string {
 	accessToken := ""
 	// 尝试从Cookie里面取用户授权凭证
 	if cookieAuthKey != "" {
@@ -431,19 +431,54 @@ func getAccessToken(ctx iris.Context, cookieAuthKey, headerAuthKey, authInfoHead
 		}
 	}
 	// 尝试从请求参数里面取用户授权凭证
-	//if len(accessToken) <= 8 {
-	//	tmpAccessToken := ctx.URLParam(common.COOKIE_KEY_AUTH_TOKEN)
-	//	if len(tmpAccessToken) > 8 {
-	//		accessToken = tmpAccessToken
-	//	}
-	//}
+	if len(accessToken) <= 8 {
+		if uriParamAuthKey != "" {
+			accessToken = xJwtGetUrlToken(ctx, uriParamAuthKey)
+		}
+
+	}
 	// 去除校验头
 	if authInfoHeader != "" && accessToken != "" {
-		if strings.HasPrefix(accessToken, authInfoHeader) {
+		if strings.HasPrefix(accessToken, authInfoHeader+" ") {
+			accessToken = accessToken[len(authInfoHeader)+1:]
+		} else if strings.HasPrefix(accessToken, authInfoHeader+":") {
+			accessToken = accessToken[len(authInfoHeader)+1:]
+		} else if strings.HasPrefix(accessToken, authInfoHeader) {
 			accessToken = accessToken[len(authInfoHeader):]
 		}
 	}
 	return accessToken
+}
+func xJwtGetUrlToken(ctx iris.Context, origKey string) string {
+	tmpToken := xJwtGetUrlQuery(ctx, origKey)
+	if len(tmpToken) <= 8 {
+		tmpToken = xJwtGetUrlParam(ctx, origKey)
+	}
+	return tmpToken
+}
+
+func xJwtGetUrlQuery(ctx iris.Context, origKey string) string {
+	if len(origKey) <= 0 {
+		return ""
+	}
+	if ctx.URLParamExists(origKey) {
+		paramVal := ctx.URLParam(origKey)
+		return paramVal
+	} else {
+		return ""
+	}
+}
+
+func xJwtGetUrlParam(ctx iris.Context, origKey string) string {
+	if len(origKey) <= 0 {
+		return ""
+	}
+	if ctx.Params().Exists(origKey) {
+		paramVal := ctx.Params().GetString(origKey)
+		return paramVal
+	} else {
+		return ""
+	}
 }
 
 // 获取用户授权凭证信息

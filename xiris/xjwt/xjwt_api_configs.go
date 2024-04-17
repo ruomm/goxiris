@@ -18,6 +18,8 @@ type WebApiConfigs struct {
 	HeaderAuthKey string `yaml:"headerAuthKey"`
 	//# 授权信息在cookie里面存储的字段
 	CookieAuthKey string `yaml:"cookieAuthKey"`
+	//#授权信息在URL路径参数中的存储的字段
+	UrlParamAuthKey string `yaml:"urlParamAuthKey"`
 	//# 授权信息开头字段，部分规范接口中会有Bearer开头的字段，需要截取掉
 	AuthInfoHeader string `yaml:"authInfoHeader"`
 	//# 代理转发服务的真实IP写入字段
@@ -35,6 +37,8 @@ type WebUriConfig struct {
 	HeaderAuthKey string `yaml:"headerAuthKey"`
 	//# 授权信息在cookie里面存储的字段
 	CookieAuthKey string `yaml:"cookieAuthKey"`
+	//#授权信息在URL路径参数中的存储的字段
+	UrlParamAuthKey string `yaml:"urlParamAuthKey"`
 	//# 授权信息开头字段，部分规范接口中会有Bearer开头的字段，需要截取掉
 	AuthInfoHeader string `yaml:"authInfoHeader"`
 	//# 代理转发服务的真实IP写入字段
