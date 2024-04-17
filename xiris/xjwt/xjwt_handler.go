@@ -31,9 +31,10 @@ type ApiVerfiyResult struct {
 	//# 路径追踪的traceID,如需要日志路径追踪则需要提供
 	TraceIdKey string
 	//# 毫秒时间存储的key，提供此值则往header的此key里面写入此毫秒时间戳，可以方便做时间切片
-	TraceTsKey   string
-	Uri          string   //uri相对路径
-	UriAbs       string   //uri绝对路径
+	TraceTsKey string
+	Uri        string //uri相对路径
+	//UriAbs       string   //uri绝对路径
+	UriFull      string   //URI全路径
 	AuthToken    string   // 授权信息
 	ApiPass      bool     // Api是否匹配到
 	Method_Pass  bool     //方法是否pass
@@ -183,21 +184,12 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 				ctx.Request().Header.Set(t.webApiConfigs.TraceTsKey, strconv.FormatInt(time.Now().UnixMilli(), 10))
 			}
 		}
+		fullRelativeURI := t.getFullRelativeURI(ctx, fullURI)
 		if t.webApiConfigs.UriHeaderKey != "" && len(fullURI) > 0 {
-			relativeURI := ""
-			absURI := ctx.AbsoluteURI("/")
-			if len(fullURI) <= 0 || len(fullURI) <= len(absURI)+1 {
-				relativeURI = fullURI
-			} else if !strings.HasPrefix(fullURI, absURI) {
-				relativeURI = fullURI
-			} else {
-				// 获取接口的相对路径
-				relativeURI = fullURI[len(absURI):]
-			}
 			if t.webApiConfigs.ToResponseHeader {
-				ctx.Header(t.webApiConfigs.UriHeaderKey, relativeURI)
+				ctx.Header(t.webApiConfigs.UriHeaderKey, fullRelativeURI)
 			} else {
-				ctx.Request().Header.Set(t.webApiConfigs.UriHeaderKey, relativeURI)
+				ctx.Request().Header.Set(t.webApiConfigs.UriHeaderKey, fullRelativeURI)
 			}
 		}
 		authPassResult := false
@@ -206,14 +198,14 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 		} else {
 			var apiVerifyResult *ApiVerfiyResult = nil
 			for _, webUriConfig := range t.webApiConfigs.WebApiConfigs {
-				tmpVerifyResult := t.verifyApiConfig(ctx, fullURI, reqMethod, &webUriConfig)
+				tmpVerifyResult := t.verifyApiConfig(ctx, fullURI, fullRelativeURI, reqMethod, &webUriConfig)
 				if nil != tmpVerifyResult {
 					apiVerifyResult = tmpVerifyResult
 					break
 				}
 			}
 			if nil == apiVerifyResult {
-				gobalUriAbs, _ := parseUrlWithContextPath(t.webApiConfigs.WebContextPath, "")
+				//gobalUriAbs, _ := parseUrlWithContextPath(t.webApiConfigs.WebContextPath, "")
 				gobalMode := parseAuthMode(t.webApiConfigs.DefaultMode)
 				gobalAuthToken := ""
 				if gobalMode == AUTH_MAY || gobalMode == AUTH_FORCE {
@@ -223,10 +215,11 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 					TraceIdKey: t.webApiConfigs.TraceIdKey,
 					TraceTsKey: t.webApiConfigs.TraceTsKey,
 					Uri:        "",
-					UriAbs:     gobalUriAbs,
-					ApiPass:    false,
-					Mode:       gobalMode,
-					AuthToken:  gobalAuthToken,
+					//UriAbs:     gobalUriAbs,
+					UriFull:   fullRelativeURI,
+					ApiPass:   false,
+					Mode:      gobalMode,
+					AuthToken: gobalAuthToken,
 				}
 				apiVerifyResult = &gobalApiVerifyResult
 			}
@@ -263,8 +256,22 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 	return handler
 }
 
+func (t *XjwtHander) getFullRelativeURI(ctx iris.Context, fullURI string) string {
+	relativeURI := ""
+	absURI := ctx.AbsoluteURI("/")
+	if len(fullURI) <= 0 || len(fullURI) <= len(absURI)+1 {
+		relativeURI = fullURI
+	} else if !strings.HasPrefix(fullURI, absURI) {
+		relativeURI = fullURI
+	} else {
+		// 获取接口的相对路径
+		relativeURI = fullURI[len(absURI):]
+	}
+	return relativeURI
+}
+
 // 判断接口是否URI匹配和token校验是否通过
-func (t *XjwtHander) verifyApiConfig(ctx iris.Context, fullURI string, reqMethod string, webUriConfig *WebUriConfig) *ApiVerfiyResult {
+func (t *XjwtHander) verifyApiConfig(ctx iris.Context, fullURI string, fullRelativeURI string, reqMethod string, webUriConfig *WebUriConfig) *ApiVerfiyResult {
 	//获取绝对路径
 	absURI := ctx.AbsoluteURI(webUriConfig.UriAbs)
 	if len(fullURI) <= 0 || len(fullURI) <= len(absURI)+1 || len(reqMethod) <= 0 {
@@ -280,10 +287,10 @@ func (t *XjwtHander) verifyApiConfig(ctx iris.Context, fullURI string, reqMethod
 	ipRemoteAddr := getIpRemoteAddr(ctx, webUriConfig.AgentRealIpHeader)
 	ipAllowGobal := verfiyIPAllow(ipRemoteAddr, webUriConfig.IpAllow)
 	//if !ipAllowGobal {
-	//	return &ApiVerfiyResult{TraceIdKey: t.webApiConfigs.TraceIdKey, TraceTsKey: t.webApiConfigs.TraceTsKey, Uri: webUriConfig.Uri, UriAbs: webUriConfig.UriAbs, ApiPass: false, Method_Pass: false, IpAllow_Pass: false, Mode: AUTH_REFUSE}
+	//	return &ApiVerfiyResult{TraceIdKey: t.webApiConfigs.TraceIdKey, TraceTsKey: t.webApiConfigs.TraceTsKey, Uri: webUriConfig.Uri, UriFull: fullRelativeURI, ApiPass: false, Method_Pass: false, IpAllow_Pass: false, Mode: AUTH_REFUSE}
 	//}
 	// 判断规则是否通过
-	apiVerfiyResult := ApiVerfiyResult{TraceIdKey: t.webApiConfigs.TraceIdKey, TraceTsKey: t.webApiConfigs.TraceTsKey, Uri: webUriConfig.Uri, UriAbs: webUriConfig.UriAbs, ApiPass: false, Method_Pass: false, IpAllow_Pass: false, Mode: parseAuthMode(webUriConfig.DefaultMode)}
+	apiVerfiyResult := ApiVerfiyResult{TraceIdKey: t.webApiConfigs.TraceIdKey, TraceTsKey: t.webApiConfigs.TraceTsKey, Uri: webUriConfig.Uri, UriFull: fullRelativeURI, ApiPass: false, Method_Pass: false, IpAllow_Pass: false, Mode: parseAuthMode(webUriConfig.DefaultMode)}
 	for _, apiConfig := range *(webUriConfig.ApiConfigs) {
 		if corex.MatchStringCommon(apiConfig.Api, relativeURI) {
 			apiVerfiyResult.ApiPass = true
