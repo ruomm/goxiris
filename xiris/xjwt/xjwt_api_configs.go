@@ -61,6 +61,8 @@ type ApiConfig struct {
 	Method string `yaml:"method"`
 	//# mode 代表授权策略，open：开放接口，不需要授权，force：需要强制授权，may：授权和不授权都可以，refuse：拒绝执行
 	Mode string `yaml:"mode"`
+	//# tag标识，使用tag标识可以区分不同角色权限控制
+	Tag string `yaml:"tag"`
 	// # ipAllow 限制IP访问的范围，如192.168.3.1,10.0.1.1/16,192.168.50.3-192.168.50.6等。
 	IpAllow string `yaml:"ipAllow"`
 }

@@ -39,6 +39,7 @@ type ApiVerfiyResult struct {
 	Method_Pass  bool     //方法是否pass
 	IpAllow_Pass bool     //IP限制是否通过
 	Mode         AuthMode // 0.不需要授权 1.需要强制授权 2.不需要强制授权，可以在业务逻辑中区分 9.业务拒绝
+	Tag          string   //# tag标识，使用tag标识可以区分不同角色权限控制
 }
 
 type XjwAuthHander func(ctx iris.Context, verifyResult *ApiVerfiyResult) bool
@@ -272,9 +273,9 @@ func (t *XjwtHander) verifyApiConfig(ctx iris.Context, fullURI string, reqMethod
 	// 获取接口的真实地址
 	ipRemoteAddr := getIpRemoteAddr(ctx, webUriConfig.AgentRealIpHeader)
 	ipAllowGobal := verfiyIPAllow(ipRemoteAddr, webUriConfig.IpAllow)
-	if !ipAllowGobal {
-		return &ApiVerfiyResult{TraceIdKey: t.webApiConfigs.TraceIdKey, TraceTsKey: t.webApiConfigs.TraceTsKey, Uri: webUriConfig.Uri, UriAbs: webUriConfig.UriAbs, ApiPass: false, Method_Pass: false, IpAllow_Pass: false, Mode: AUTH_REFUSE}
-	}
+	//if !ipAllowGobal {
+	//	return &ApiVerfiyResult{TraceIdKey: t.webApiConfigs.TraceIdKey, TraceTsKey: t.webApiConfigs.TraceTsKey, Uri: webUriConfig.Uri, UriAbs: webUriConfig.UriAbs, ApiPass: false, Method_Pass: false, IpAllow_Pass: false, Mode: AUTH_REFUSE}
+	//}
 	// 判断规则是否通过
 	apiVerfiyResult := ApiVerfiyResult{TraceIdKey: t.webApiConfigs.TraceIdKey, TraceTsKey: t.webApiConfigs.TraceTsKey, Uri: webUriConfig.Uri, UriAbs: webUriConfig.UriAbs, ApiPass: false, Method_Pass: false, IpAllow_Pass: false, Mode: parseAuthMode(webUriConfig.DefaultMode)}
 	for _, apiConfig := range *(webUriConfig.ApiConfigs) {
@@ -283,17 +284,19 @@ func (t *XjwtHander) verifyApiConfig(ctx iris.Context, fullURI string, reqMethod
 			apiVerfiyResult.Method_Pass = verifyRequestMethod(apiConfig.Method, reqMethod)
 			apiVerfiyResult.IpAllow_Pass = verfiyIPAllow(ipRemoteAddr, apiConfig.IpAllow)
 			apiVerfiyResult.Mode = parseAuthMode(apiConfig.Mode)
+			apiVerfiyResult.Tag = apiConfig.Tag
 			if apiVerfiyResult.Method_Pass {
 				break
 			}
 		}
 	}
-	// 如是方法没有通过，则使用默认的处理
-	if !apiVerfiyResult.ApiPass || !apiVerfiyResult.Method_Pass {
-		apiVerfiyResult.Mode = parseAuthMode(webUriConfig.DefaultMode)
-	}
-	if !apiVerfiyResult.IpAllow_Pass {
+	// 校验IP和API方法
+	if !ipAllowGobal || !apiVerfiyResult.IpAllow_Pass {
+		// 如是IP校验未通过则设置为拒绝
 		apiVerfiyResult.Mode = AUTH_REFUSE
+	} else if !apiVerfiyResult.ApiPass || !apiVerfiyResult.Method_Pass {
+		// 如是方法没有通过，则使用默认的处理
+		apiVerfiyResult.Mode = parseAuthMode(webUriConfig.DefaultMode)
 	}
 	if apiVerfiyResult.Mode == AUTH_FORCE || apiVerfiyResult.Mode == AUTH_MAY {
 		apiVerfiyResult.AuthToken = getAccessToken(ctx, webUriConfig.CookieAuthKey, webUriConfig.HeaderAuthKey, webUriConfig.AuthInfoHeader)
