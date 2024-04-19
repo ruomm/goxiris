@@ -40,12 +40,27 @@ func parseUrlWithContextPath(webContextPath string, uri string) (string, error) 
 }
 
 func getAbsDir(relativePath string) string {
-	if relativePath == "" {
+	if len(relativePath) <= 0 {
 		return filepath.Dir(os.Args[0])
-	} else if strings.HasPrefix(relativePath, "/") || strings.HasPrefix(relativePath, "\\") {
+	} else if xJwtIsAbsDir(relativePath) {
 		return relativePath
 	} else {
 		dir := filepath.Dir(os.Args[0])
 		return path.Join(dir, relativePath)
+	}
+}
+
+func xJwtIsAbsDir(path string) bool {
+	if len(path) <= 0 {
+		return false
+	} else if strings.HasPrefix(path, "/") || strings.HasPrefix(path, "\\") {
+		return true
+	} else {
+		indexSpec := strings.Index(path, ":")
+		if indexSpec >= 0 && indexSpec < 12 {
+			return true
+		} else {
+			return false
+		}
 	}
 }
