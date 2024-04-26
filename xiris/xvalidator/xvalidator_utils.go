@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/ruomm/goxframework/gox/corex"
+	"github.com/ruomm/goxframework/gox/refx"
 	"github.com/ruomm/goxiris/xiris/xresponse"
 	"log"
 	"reflect"
@@ -61,6 +62,34 @@ func XValidatorInit() error {
 		return err
 	}
 	err = Validator.RegisterValidation("xtbefore", xValid_DateTime_BeforeCurrent)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xqueryday", xValid_Register_QueryDay)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xquerymonth", xValid_Register_QueryMonth)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xquerydate", xValid_Register_QueryDate)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xthhmmss", xValid_Register_xthhmmss)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xthhmm", xValid_Register_xthhmm)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xmutilof", xValid_Register_xmutilof)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xnorepeat", xValid_Register_xnorepeat)
 	if err != nil {
 		return err
 	}
@@ -211,73 +240,193 @@ func transFieldKey(keyStr string) string {
 
 func xValid_Register_CompanyId(fl validator.FieldLevel) bool {
 	verificationStr := `^[a-z0-9\-]*$`
-	return xValid_Register_Regex(fl, verificationStr)
+	validResult, _ := XValid_Register_Regex(fl, verificationStr)
+	return validResult
 }
 
 // 必须是用户名
 func xValid_Register_UserName(fl validator.FieldLevel) bool {
 	verificationStr := UserNameRegexp
-	return xValid_Register_Regex(fl, verificationStr)
+	validResult, _ := XValid_Register_Regex(fl, verificationStr)
+	return validResult
 }
 
 // 必须是密码
 func xValid_Register_Password(fl validator.FieldLevel) bool {
 	verificationStr := PasswordRegexp
-	return xValid_Register_Regex(fl, verificationStr)
+	validResult, _ := XValid_Register_Regex(fl, verificationStr)
+	return validResult
 }
 
 // 必须手机号码
 func xValid_Register_Mobile(fl validator.FieldLevel) bool {
 	verificationStr := MobileRegexp
-	return xValid_Register_Regex(fl, verificationStr)
+	validResult, _ := XValid_Register_Regex(fl, verificationStr)
+	return validResult
 }
 
 // 必须电话号码
 func xValid_Register_Phone(fl validator.FieldLevel) bool {
 	verificationStr := PhoneRegexp
-	return xValid_Register_Regex(fl, verificationStr)
+	validResult, _ := XValid_Register_Regex(fl, verificationStr)
+	return validResult
 }
 
 // 不能存在 单引号、双引号、update、delete 等关键词
 func xValid_Register_LimitStr(fl validator.FieldLevel) bool {
 	verificationStr := `(?:")|(?:')|(?:--)|(/\\*(?:.|[\\n\\r])*?\\*/)|(\b(select|update|and|or|delete|insert|trancate|char|chr|into|substr|ascii|declare|exec|count|master|into|drop|execute)\b)`
-	return xValid_Register_Regex_Reverse(fl, verificationStr)
+	validResult, _ := XValid_Register_Regex_Reverse(fl, verificationStr)
+	return validResult
 }
 
-func xValid_Register_Regex(fl validator.FieldLevel, verificationStr string) bool {
-	if verificationStr == "" {
-		return false
-	}
+// 验证Slice不可以重复，基础数据类型直接验证，结构体可以指定验证指定的field字段。
+func xValid_Register_xnorepeat(fl validator.FieldLevel) bool {
 	field := fl.Field()
 	switch field.Kind() {
 	case reflect.String:
-		re, err := regexp.Compile(verificationStr)
-		if err != nil {
-			log.Println(err.Error())
+		flstring := field.String()
+		sliceString := corex.StringToSlice(flstring, ",", true)
+		sliceDuplicates := corex.SliceDuplicates(sliceString)
+		if sliceDuplicates {
+			return false
+		} else {
+			return true
+		}
+	default:
+		flparam := fl.Param()
+		flSlice := field.Interface()
+		sliceDuplicates := corex.SliceDuplicatesByKey(flSlice, flparam)
+		if sliceDuplicates {
+			return false
+		} else {
+			return true
+		}
+	}
+}
+
+// 验证字符串复选，可以多选，但不可重复
+func xValid_Register_xmutilof(fl validator.FieldLevel) bool {
+	field := fl.Field()
+	switch field.Kind() {
+	case reflect.String:
+		flparam := fl.Param()
+		flstring := field.String()
+		if len(flparam) <= 0 || len(flstring) <= 0 {
 			return false
 		}
-		return re.MatchString(field.String())
+		sliceParam := corex.StringToSlice(flparam, " ", false)
+		sliceString := corex.StringToSlice(flstring, ",", true)
+		sliceDuplicates := corex.SliceDuplicates(sliceString)
+		if sliceDuplicates {
+			return false
+		}
+		for _, str := range sliceString {
+			if !corex.SliceContains(sliceParam, str) {
+				return false
+			}
+		}
+		return true
 	default:
 		return false
 	}
 }
 
-func xValid_Register_Regex_Reverse(fl validator.FieldLevel, verificationStr string) bool {
-	if verificationStr == "" {
+// 验证时分秒mm-hh-ss格式
+func xValid_Register_xthhmmss(fl validator.FieldLevel) bool {
+	validResult, _ := XValid_Register_Regex(fl, "^([0-1][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$")
+	return validResult
+}
+
+// 验证时分mm-hh格式
+func xValid_Register_xthhmm(fl validator.FieldLevel) bool {
+	validResult, _ := XValid_Register_Regex(fl, "^([0-1][0-9]|2[0-3]):([0-5][0-9])$")
+	return validResult
+}
+
+// 验证查询月份或日期
+func xValid_Register_QueryDate(fl validator.FieldLevel) bool {
+	if xValid_Register_QueryMonth(fl) || xValid_Register_QueryDay(fl) {
+		return true
+	} else {
 		return false
+	}
+}
+
+// 验证查询日期
+func xValid_Register_QueryDay(fl validator.FieldLevel) bool {
+	validResult, flStr := XValid_Register_Regex(fl, "^\\d{4}-\\d{2}-\\d{2}$")
+	if !validResult {
+		return validResult
+	}
+	timeArr := strings.Split(flStr, "-")
+	year := corex.StrToInt64(timeArr[0])
+	month := corex.StrToInt64(timeArr[1])
+	day := corex.StrToInt64(timeArr[2])
+	if year < 0 || year >= 3000 {
+		return false
+	}
+	if month < 1 || month > 12 {
+		return false
+	}
+	dayCountByMonth := corex.GetDayCountByMonth(int(year), int(month))
+	if day < 1 || day > int64(dayCountByMonth) {
+		return false
+	}
+	return validResult
+}
+
+// 验证查询月份
+func xValid_Register_QueryMonth(fl validator.FieldLevel) bool {
+	validResult, flStr := XValid_Register_Regex(fl, "^\\d{4}-\\d{2}$")
+	if !validResult {
+		return validResult
+	}
+	timeArr := strings.Split(flStr, "-")
+	year := corex.StrToInt64(timeArr[0])
+	month := corex.StrToInt64(timeArr[1])
+	if year < 0 || year >= 3000 {
+		return false
+	}
+	if month < 1 || month > 12 {
+		return false
+	}
+	return validResult
+}
+
+func XValid_Register_Regex(fl validator.FieldLevel, verificationStr string) (bool, string) {
+	if verificationStr == "" {
+		return false, ""
 	}
 	field := fl.Field()
-	switch field.Kind() {
-	case reflect.String:
-		re, err := regexp.Compile(verificationStr)
-		if err != nil {
-			log.Println(err.Error())
-			return false
-		}
-		return !re.MatchString(field.String())
-	default:
-		return false
+	vi := refx.ParseToString(field.Interface(), "tf:2006-01-02 15:04:05")
+	if vi == nil {
+		return false, ""
 	}
+	viStr := vi.(string)
+	re, err := regexp.Compile(verificationStr)
+	if err != nil {
+		log.Println(err.Error())
+		return false, ""
+	}
+	return re.MatchString(viStr), viStr
+}
+
+func XValid_Register_Regex_Reverse(fl validator.FieldLevel, verificationStr string) (bool, string) {
+	if verificationStr == "" {
+		return false, ""
+	}
+	field := fl.Field()
+	vi := refx.ParseToString(field.Interface(), "tf:2006-01-02 15:04:05")
+	if vi == nil {
+		return false, ""
+	}
+	viStr := vi.(string)
+	re, err := regexp.Compile(verificationStr)
+	if err != nil {
+		log.Println(err.Error())
+		return false, viStr
+	}
+	return !re.MatchString(viStr), viStr
 }
 
 func xValid_DateTime_BeforeCurrent(fl validator.FieldLevel) bool {
