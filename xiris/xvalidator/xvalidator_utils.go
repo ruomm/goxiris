@@ -9,6 +9,7 @@ import (
 	"log"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -90,6 +91,10 @@ func XValidatorInit() error {
 		return err
 	}
 	err = Validator.RegisterValidation("xnorepeat", xValid_Register_xnorepeat)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xweburl", xValid_Register_xweburl)
 	if err != nil {
 		return err
 	}
@@ -393,6 +398,43 @@ func xValid_Register_QueryMonth(fl validator.FieldLevel) bool {
 	return validResult
 }
 
+// 验证WEB网址，必须是https或http协议，没有参数协议后面至少1位字符串，由参数则协议后字符串长度必须大于等于参数值
+func xValid_Register_xweburl(fl validator.FieldLevel) bool {
+	flString, _ := XValidParseToString(fl)
+	if len(flString) <= 0 {
+		return false
+	}
+	flStringLower := strings.ToLower(flString)
+	lenFlString := len(flStringLower)
+	flParamInt := 1
+	flParam := fl.Param()
+	if len(flParam) > 0 {
+		i, _ := strconv.ParseInt(flParam, 10, 64)
+		flParamInt = int(i)
+	}
+	if strings.HasPrefix(flStringLower, "http://") && lenFlString >= 7+flParamInt {
+		return true
+	} else if strings.HasPrefix(flStringLower, "https://") && lenFlString >= 8+flParamInt {
+		return true
+	} else {
+		return false
+	}
+
+}
+
+// 解析为字符串
+func XValidParseToString(fl validator.FieldLevel) (string, error) {
+
+	field := fl.Field()
+	vi := refx.ParseToString(field.Interface(), "tf:2006-01-02 15:04:05")
+	if vi == nil {
+		return "", errors.New("validator field can not parse to string")
+	}
+	viStr := vi.(string)
+	return viStr, nil
+}
+
+// 正则验证器匹配验证
 func XValid_Register_Regex(fl validator.FieldLevel, verificationStr string) (bool, string) {
 	if verificationStr == "" {
 		return false, ""
@@ -411,6 +453,7 @@ func XValid_Register_Regex(fl validator.FieldLevel, verificationStr string) (boo
 	return re.MatchString(viStr), viStr
 }
 
+// 正则验证器不匹配验证
 func XValid_Register_Regex_Reverse(fl validator.FieldLevel, verificationStr string) (bool, string) {
 	if verificationStr == "" {
 		return false, ""
