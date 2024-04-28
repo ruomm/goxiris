@@ -6,7 +6,7 @@ require (
 	github.com/go-playground/validator/v10 v10.17.0
 	github.com/gomodule/redigo v1.8.9
 	github.com/kataras/iris/v12 v12.2.0
-	github.com/ruomm/goxframework v1.0.9
+	github.com/ruomm/goxframework v1.1.2
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -42,6 +42,7 @@ require (
 	github.com/morrisxyang/xreflect v0.0.0-20231001053442-6df0df9858ba // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/schollz/closestmatch v2.1.0+incompatible // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/tdewolff/minify/v2 v2.20.14 // indirect
 	github.com/tdewolff/parse/v2 v2.7.8 // indirect
