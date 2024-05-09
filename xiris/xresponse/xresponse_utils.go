@@ -126,3 +126,26 @@ func (t *XResponse) ConstructResult(respCode int, datas ...interface{}) (int, st
 		return code, message, errorDetails, data, datalist
 	}
 }
+
+func xConvertToError(errInterface interface{}) (error, bool) {
+	var errVi interface{} = nil
+	actualValue := reflect.ValueOf(errInterface)
+	if actualValue.Kind() == reflect.Pointer || actualValue.Kind() == reflect.Interface {
+		if actualValue.IsNil() {
+			return nil, false
+		}
+		actualValue = actualValue.Elem()
+		errVi = actualValue.Interface()
+	} else {
+		errVi = errInterface
+	}
+	err, ok := errVi.(error)
+	return err, ok
+	//type_origVal := reflect.TypeOf(errVi)
+	//type_error := reflect.TypeOf((*error)(nil)).Elem()
+	//if type_origVal.Implements(type_error) {
+	//	return errVi.(error), true
+	//} else {
+	//	return nil, false
+	//}
+}
