@@ -426,7 +426,7 @@ func xValid_Register_xweburl(fl validator.FieldLevel) bool {
 }
 
 // 验证WEB网址，必须是https或http协议，没有参数协议后面至少1位字符串，由参数则协议后字符串长度必须大于等于参数值
-func xValid_Register_xfilename(fl validator.FieldLevel) bool {
+func old_xValid_Register_xfilename(fl validator.FieldLevel) bool {
 	validResult, flStr := XValid_Register_Regex(fl, "^[a-zA-Z0-9-_\\.]{1,255}$")
 	if !validResult {
 		return validResult
@@ -451,6 +451,41 @@ func xValid_Register_xfilename(fl validator.FieldLevel) bool {
 	} else {
 		return true
 	}
+}
+
+// 验证WEB网址，必须是https或http协议，没有参数协议后面至少1位字符串，由参数则协议后字符串长度必须大于等于参数值
+func xValid_Register_xfilename(fl validator.FieldLevel) bool {
+	validResult, flStr := XValid_Register_Regex(fl, "^[a-zA-Z0-9-_\\.]{1,255}$")
+	if !validResult {
+		return validResult
+	}
+	if strings.HasSuffix(flStr, ".") {
+		return false
+	}
+	if strings.HasPrefix(flStr, ".") {
+		return false
+	}
+	if !strings.Contains(flStr, ".") {
+		return false
+	}
+	flParam := fl.Param()
+	if len(flParam) <= 0 {
+		return true
+	}
+	sliceParam := corex.StringToSlice(flParam, " ", false)
+	if len(sliceParam) <= 0 {
+		return true
+	}
+	flResult := false
+	fileExtension := strings.ToLower(corex.GetFileExtension(flStr))
+	for _, tmpExt := range sliceParam {
+		tmpExtLower := strings.ToLower(tmpExt)
+		if fileExtension == tmpExtLower || "."+fileExtension == tmpExtLower {
+			flResult = true
+			break
+		}
+	}
+	return flResult
 }
 
 // 解析为字符串
