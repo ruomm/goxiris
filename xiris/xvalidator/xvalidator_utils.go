@@ -98,6 +98,10 @@ func XValidatorInit() error {
 	if err != nil {
 		return err
 	}
+	err = Validator.RegisterValidation("xfilename", xValid_Register_xfilename)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -419,7 +423,34 @@ func xValid_Register_xweburl(fl validator.FieldLevel) bool {
 	} else {
 		return false
 	}
+}
 
+// 验证WEB网址，必须是https或http协议，没有参数协议后面至少1位字符串，由参数则协议后字符串长度必须大于等于参数值
+func xValid_Register_xfilename(fl validator.FieldLevel) bool {
+	validResult, flStr := XValid_Register_Regex(fl, "^[a-zA-Z0-9-_\\.]{1,255}$")
+	if !validResult {
+		return validResult
+	}
+	if strings.HasSuffix(flStr, ".") {
+		return false
+	}
+	if strings.HasPrefix(flStr, ".") {
+		return false
+	}
+	flParam := fl.Param()
+	if len(flParam) > 0 {
+		flParam = strings.ToLower(flParam)
+	}
+	if flParam == "false" {
+		return true
+	}
+	fileNameWithoutExtension := corex.GetFileNameWithoutExtension(flStr)
+	fileExtension := corex.GetFileExtension(flStr)
+	if len(fileNameWithoutExtension) <= 0 || len(fileExtension) <= 0 {
+		return false
+	} else {
+		return true
+	}
 }
 
 // 解析为字符串
