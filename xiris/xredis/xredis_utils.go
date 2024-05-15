@@ -101,6 +101,31 @@ func (t *XRedisClient) InitPull() {
 	}
 
 }
+func (t *XRedisClient) Del(key string) error {
+	// 执行Redis命令
+	conn := t.RedisPool.Get()
+	if conn.Err() != nil {
+		return conn.Err()
+	}
+	defer conn.Close()
+	_, err := conn.Do("DEL", key)
+	return err
+}
+func (t *XRedisClient) Exists(key string) (bool, error) {
+	// 执行Redis命令
+	conn := t.RedisPool.Get()
+	if conn.Err() != nil {
+		return false, conn.Err()
+	}
+	defer conn.Close()
+	//检查是否存在key值
+	exists, err := redis.Bool(conn.Do("EXISTS", key))
+	//if err != nil {
+	//	fmt.Println("illegal exception")
+	//}
+	return exists, err
+}
+
 func (t *XRedisClient) Set(key string, value interface{}) error {
 	// 执行Redis命令
 	conn := t.RedisPool.Get()
