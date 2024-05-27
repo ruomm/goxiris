@@ -11,7 +11,6 @@ import (
 	"errors"
 	"github.com/kataras/iris/v12"
 	"github.com/ruomm/goxframework/gox/corex"
-	"github.com/ruomm/goxframework/gox/refx"
 	"github.com/ruomm/goxframework/gox/refxstandard"
 	"github.com/ruomm/goxiris/xiris/xresponse"
 	"github.com/ruomm/goxiris/xiris/xvalidator"
@@ -26,12 +25,12 @@ const (
 	xRequest_Option_Response = "resp"
 )
 
-type XRequestHander func(ctx iris.Context, key string) (string, error)
+type XRequestHander func(ctx iris.Context, origKey string, key string, cpOpt string) (interface{}, error)
 
-var xRequestHandler refx.XrefHandler = nil
+var xRequestHandler XRequestHander = nil
 
 // 配置XRequestHander
-func ConfigRequestHandler(handler refx.XrefHandler) {
+func ConfigRequestHandler(handler XRequestHander) {
 	xRequestHandler = handler
 }
 
@@ -123,10 +122,13 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 		return errors.New("解析Header参数失败")
 	}
 	if nil != xRequestHandler {
-		// 解析refx参数
-		errGRefx, transFailsKeysRefx := refxstandard.XRefHandlerCopy(xrefHanderQuery, req, refxstandard.XrefOptTag(xRequest_Parse_refx), refxstandard.XrefOptCheckUnsigned(true))
+		xrefHanderRefx := refxstandard.XrefHandler(func(origKey string, key string, cpOpt string) (interface{}, error) {
+			return xRequestHandler(ctx, origKey, key, cpOpt)
+		})
+		// 解析自定义refx参数
+		errGRefx, transFailsKeysRefx := refxstandard.XRefHandlerCopy(xrefHanderRefx, req, refxstandard.XrefOptTag(xRequest_Parse_refx), refxstandard.XrefOptCheckUnsigned(true))
 		if errGRefx != nil || len(transFailsKeysRefx) > 0 {
-			return errors.New("解析refx参数失败")
+			return errors.New("解析自定义refx参数失败")
 		}
 	}
 	return nil
