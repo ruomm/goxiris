@@ -21,8 +21,18 @@ const (
 	xRequest_Parse_Param     = "xreq_param"
 	xRequest_Parse_Query     = "xreq_query"
 	xRequest_Parse_Header    = "xreq_header"
+	xRequest_Parse_ByKey     = "xreq_key"
 	xRequest_Option_Response = "resp"
 )
+
+type XRequestHander func(ctx iris.Context, key string) (string, error)
+
+var xRequestHandler XRequestHander = nil
+
+// 配置XRequestHander
+func ConfigRequestHandler(handler XRequestHander) {
+	xRequestHandler = handler
+}
 
 func XRequestParse(pCtx iris.Context, req interface{}) (error, *[]xresponse.ParamError) {
 	// 解析参数
@@ -110,6 +120,23 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 	errGHeader, transFailsKeysHeader := refxstandard.XRefHandlerCopy(xrefHanderHeader, req, refxstandard.XrefOptTag(xRequest_Parse_Header), refxstandard.XrefOptCheckUnsigned(true))
 	if errGHeader != nil || len(transFailsKeysHeader) > 0 {
 		return errors.New("解析Header参数失败")
+	}
+	if nil != xRequestHandler {
+		// 解析自定义keyMap参数
+		xrefHanderByKey := refxstandard.XrefHander(func(origKey string, key string, cpOpt string) (interface{}, error) {
+			paramVal, err := xRequestHandler(ctx, key)
+			if nil != err {
+				return nil, err
+			} else if len(paramVal) <= 0 {
+				return nil, nil
+			} else {
+				return paramVal, nil
+			}
+		})
+		errGParamByKey, transFailsKeysParamByKey := refxstandard.XRefHandlerCopy(xrefHanderByKey, req, refxstandard.XrefOptTag(xRequest_Parse_ByKey), refxstandard.XrefOptCheckUnsigned(true))
+		if errGParamByKey != nil || len(transFailsKeysParamByKey) > 0 {
+			return errors.New("解析自定义keyMap参数失败")
+		}
 	}
 	return nil
 }
