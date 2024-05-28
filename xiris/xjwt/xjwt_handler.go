@@ -98,13 +98,13 @@ func (t *XjwtHander) LoadConfigByYaml(confYaml string, contextPath string, trace
 	byteData, err := ioutil.ReadFile(getAbsDir(confYaml))
 	if err != nil {
 		panic(fmt.Sprintf("Web XjwtHander load config form yaml file err:%v", err))
-		return err
+		//return err
 	}
 	webAPiConfigsByYaml := WebApiConfigs{}
 	err = yaml.Unmarshal(byteData, &webAPiConfigsByYaml)
 	if err != nil {
 		panic(fmt.Sprintf("Web XjwtHander read config yaml to WebAPiConfigs err:%v", err))
-		return err
+		//return err
 	}
 	webAPiConfigsByYaml.OpenMode = false
 	if contextPath != "" {
@@ -129,10 +129,10 @@ func (t *XjwtHander) LoadConfigByYaml(confYaml string, contextPath string, trace
 		if errUri != nil {
 			if err != nil {
 				panic(fmt.Sprintf("Web XjwtHander Parse URI Error:%v", err))
-				return err
+				//return err
 			} else if len(absUri) <= 0 {
 				panic(fmt.Sprintf("Web XjwtHander Parse URI Error:%v", err))
-				return err
+				//return err
 			}
 		}
 		webAPiConfigsByYaml.WebApiConfigs[i].UriAbs = absUri
@@ -383,7 +383,7 @@ func verfiyIPAllow(ipRemoteAddr string, ipAllow string) bool {
 func isIpInRange(ip string, cidr string) bool {
 	_, ipNet, err := net.ParseCIDR(cidr)
 	if err != nil {
-		fmt.Println("Web XjwtHander ipAllow Invalid CIDR err:%v", err)
+		fmt.Println("Web XjwtHander ipAllow Invalid CIDR err:" + err.Error())
 		return false
 	}
 	parsedIp := net.ParseIP(ip)
