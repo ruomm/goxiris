@@ -2,6 +2,7 @@ package xvalidator
 
 import (
 	"errors"
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/ruomm/goxframework/gox/corex"
 	"github.com/ruomm/goxframework/gox/refx"
@@ -109,25 +110,34 @@ func XValidatorInit() error {
 *
 通过xvalid_error注入需要自定义显示的错误信息
 */
-func XValidator(u interface{}) (error, *[]xresponse.ParamError) {
+func XValidator(u interface{}, showFirstError bool) (error, *[]xresponse.ParamError) {
 	err := Validator.Struct(u)
-	return xValidatorProcessErr(u, err)
+	return xValidatorProcessErr(u, err, showFirstError)
 }
 
 /*
 *
 通过xvalid_error注入需要自定义显示的错误信息
 */
-func xValidatorProcessErr(u interface{}, err error) (error, *[]xresponse.ParamError) {
+func xValidatorProcessErr(u interface{}, err error, showFirstError bool) (error, *[]xresponse.ParamError) {
 	if err == nil {
 		return nil, nil
 	}
-	invalid, ok := err.(*validator.InvalidValidationError)
-	if ok {
-		return errors.New("参数校验错误:" + invalid.Error()), nil
+	invalid, okG := err.(*validator.InvalidValidationError)
+	if okG {
+		if showFirstError {
+			return errors.New("参数校验器失效:" + invalid.Error()), nil
+		} else {
+			return errors.New("参数校验错误:" + invalid.Error()), nil
+		}
+
 	}
 	var paramErrors []xresponse.ParamError
 	validationErrs := err.(validator.ValidationErrors)
+	firstErrorInfo := ""
+	if !showFirstError {
+		firstErrorInfo = "参数校验错误"
+	}
 	for _, validationErr := range validationErrs {
 		fieldName := validationErr.Field() //获取是哪个字段不符合格式
 		typeOf := reflect.TypeOf(u)
@@ -185,9 +195,15 @@ func xValidatorProcessErr(u interface{}, err error) (error, *[]xresponse.ParamEr
 				errorInfo = errorMsg
 			}
 		}
+		if showFirstError && len(firstErrorInfo) <= 0 {
+			firstErrorInfo = fmt.Sprintf("%s(%s)", errorInfo, errorKey)
+		}
 		paramErrors = append(paramErrors, xresponse.ParamError{Field: errorKey, Message: errorInfo})
 	}
-	return errors.New("参数校验错误"), &paramErrors
+	if len(firstErrorInfo) <= 0 {
+		firstErrorInfo = "参数校验错误"
+	}
+	return errors.New(firstErrorInfo), &paramErrors
 }
 
 func xPraseJsonTagName(field *reflect.StructField) string {

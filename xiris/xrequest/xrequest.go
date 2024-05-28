@@ -29,9 +29,16 @@ type XRequestHander func(ctx iris.Context, origKey string, key string, cpOpt str
 
 var xRequestHandler XRequestHander = nil
 
+var showFirstError bool = false
+
 // 配置XRequestHander
 func ConfigRequestHandler(handler XRequestHander) {
 	xRequestHandler = handler
+}
+
+// 配置是否显示第一条错误信息
+func ConfigshowFirstError(show bool) {
+	showFirstError = show
 }
 
 func XRequestParse(pCtx iris.Context, req interface{}) (error, *[]xresponse.ParamError) {
@@ -41,7 +48,7 @@ func XRequestParse(pCtx iris.Context, req interface{}) (error, *[]xresponse.Para
 		return err, nil
 	}
 	// 验证参数
-	return xvalidator.XValidator(req)
+	return xvalidator.XValidator(req, showFirstError)
 }
 func xReq_parse(ctx iris.Context, req interface{}) error {
 	//if "POST" == ctx.Method() || "PUT" == ctx.Method() {
