@@ -196,7 +196,7 @@ func xValidatorProcessErr(u interface{}, err error, showFirstError bool) (error,
 			}
 		}
 		if showFirstError && len(firstErrorInfo) <= 0 {
-			firstErrorInfo = fmt.Sprintf("%s(%s)", errorInfo, errorKey)
+			firstErrorInfo = fmt.Sprintf("%s", errorInfo)
 		}
 		paramErrors = append(paramErrors, xresponse.ParamError{Field: errorKey, Message: errorInfo})
 	}
