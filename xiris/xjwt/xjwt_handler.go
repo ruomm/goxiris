@@ -6,6 +6,7 @@ import (
 	"github.com/ruomm/goxframework/gox/corex"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"reflect"
 	"runtime"
@@ -168,13 +169,21 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 		if t.webApiConfigs.TraceIdGetKey != "" {
 			traceId := ctx.GetHeader(t.webApiConfigs.TraceIdGetKey)
 			if len(traceId) <= 0 {
-				traceId = "be-" + strconv.FormatInt(time.Now().Unix(), 10)
+				timeNow := time.Now()
+				traceId = "be-" + corex.TimeFormatByString("20060102-150405", &timeNow) + "-" + fmt.Sprintf("%06d", rand.Intn(1000000))
 				if t.webApiConfigs.ToResponseHeader {
 					ctx.Header(t.webApiConfigs.TraceIdKey, traceId)
 				} else {
 					ctx.Request().Header.Set(t.webApiConfigs.TraceIdKey, traceId)
 				}
-
+			} else {
+				if t.webApiConfigs.ToResponseHeader {
+					ctx.Header(t.webApiConfigs.TraceIdKey, traceId)
+				} else {
+					if t.webApiConfigs.TraceIdKey != t.webApiConfigs.TraceIdGetKey {
+						ctx.Request().Header.Set(t.webApiConfigs.TraceIdKey, traceId)
+					}
+				}
 			}
 		}
 		if t.webApiConfigs.TraceTsKey != "" {
