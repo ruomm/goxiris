@@ -139,16 +139,10 @@ func xValidatorProcessErr(u interface{}, err error, showFirstError bool) (error,
 		firstErrorInfo = "参数校验错误"
 	}
 	for _, validationErr := range validationErrs {
-		fieldName := validationErr.Field() //获取是哪个字段不符合格式
-		typeOf := reflect.TypeOf(u)
-		// 如果是指针，获取其属性
-		if typeOf.Kind() == reflect.Ptr {
-			typeOf = typeOf.Elem()
-		}
-		field, ok := typeOf.FieldByName(fieldName) //通过反射获取filed
+		field, parentFileName, fieldName, parseErr := xParseStructField(u, validationErr)
 		errorInfo := ""
 		errorKey := ""
-		if ok {
+		if parseErr == nil {
 			errorInfo = field.Tag.Get("xvalid_error") // 获取field对应的reg_error_info tag值
 			errorKeyByTag := xPraseJsonTagName(&field)
 			if errorKeyByTag == "" {
@@ -163,7 +157,9 @@ func xValidatorProcessErr(u interface{}, err error, showFirstError bool) (error,
 			if errorKeyByTag == "" {
 				errorKeyByTag = fieldName
 			}
-			errorKey = errorKeyByTag
+			if len(errorKeyByTag) > 0 {
+				errorKey = parentFileName + errorKeyByTag
+			}
 		}
 
 		if errorInfo == "" {
@@ -204,6 +200,68 @@ func xValidatorProcessErr(u interface{}, err error, showFirstError bool) (error,
 		firstErrorInfo = "参数校验错误"
 	}
 	return errors.New(firstErrorInfo), &paramErrors
+}
+
+func xParseStructField(u interface{}, validationErr validator.FieldError) (reflect.StructField, string, string, error) {
+	ns := validationErr.Namespace()
+	_, fieldPath, _ := strings.Cut(ns, ".")
+	fieldNames := strings.Split(fieldPath, ".")
+	if len(fieldPath) <= 0 || len(fieldNames) <= 0 {
+		typeOf := reflect.TypeOf(u)
+		typeKind := typeOf.Kind()
+		// 如果是指针，获取其属性
+		if typeKind == reflect.Slice || typeKind == reflect.Pointer || typeKind == reflect.Map || typeKind == reflect.Chan || typeKind == reflect.Array {
+			typeOf = typeOf.Elem()
+		}
+		fieldName := validationErr.Field()
+		field, ok := typeOf.FieldByName(fieldName) //通过反射获取filed
+		if !ok {
+			return field, "", fieldName, errors.New(fmt.Sprintf("无法获取%s字段的类型"))
+		} else {
+			return field, "", fieldName, nil
+		}
+	} else {
+		typeOf := reflect.TypeOf(u)
+		parentFieldBuilder := strings.Builder{}
+		subFieldName := fieldNames[len(fieldNames)-1]
+		for i := 0; i < len(fieldNames)-1; i++ {
+			//if parentFieldBuilder.Len() > 0 {
+			//
+			//}
+			parentFieldBuilder.WriteString(fieldNames[i])
+			parentFieldBuilder.WriteString(".")
+		}
+		for i := 0; i < len(fieldNames); i++ {
+			fieldName, _ := xParseRealFieldName(fieldNames[i])
+			// 如果是指针，获取其属性
+			typeKind := typeOf.Kind()
+			if typeKind == reflect.Slice || typeKind == reflect.Pointer || typeKind == reflect.Map || typeKind == reflect.Chan || typeKind == reflect.Array {
+				typeOf = typeOf.Elem()
+			}
+			field, ok := typeOf.FieldByName(fieldName) //通过反射获取filed
+			if !ok {
+				return field, parentFieldBuilder.String(), subFieldName, errors.New(fmt.Sprintf("无法获取%s字段的类型", fieldPath))
+			}
+			typeOf = field.Type
+			if i == len(fieldNames)-1 {
+				return field, parentFieldBuilder.String(), subFieldName, nil
+			}
+		}
+		return reflect.StructField{}, parentFieldBuilder.String(), subFieldName, errors.New(fmt.Sprintf("无法获取%s字段的类型", fieldPath))
+	}
+
+}
+func xParseRealFieldName(fieldName string) (string, bool) {
+	if strings.HasSuffix(fieldName, "]") {
+		lastIndex := strings.LastIndex(fieldName, "[")
+		if lastIndex > 0 {
+			return fieldName[0:lastIndex], true
+		} else {
+			return fieldName, false
+		}
+	} else {
+		return fieldName, false
+	}
 }
 
 func xPraseJsonTagName(field *reflect.StructField) string {
@@ -469,7 +527,7 @@ func old_xValid_Register_xfilename(fl validator.FieldLevel) bool {
 	}
 }
 
-// 验证WEB网址，必须是https或http协议，没有参数协议后面至少1位字符串，由参数则协议后字符串长度必须大于等于参数值
+// 验证是否文件
 func xValid_Register_xfilename(fl validator.FieldLevel) bool {
 	validResult, flStr := XValid_Register_Regex(fl, "^[a-zA-Z0-9-_\\.]{1,255}$")
 	if !validResult {
