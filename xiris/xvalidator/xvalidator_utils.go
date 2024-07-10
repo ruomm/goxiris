@@ -216,7 +216,7 @@ func xParseStructField(u interface{}, validationErr validator.FieldError) (refle
 		fieldName := validationErr.Field()
 		field, ok := typeOf.FieldByName(fieldName) //通过反射获取filed
 		if !ok {
-			return field, "", fieldName, errors.New(fmt.Sprintf("无法获取%s字段的类型"))
+			return field, "", fieldName, errors.New(fmt.Sprintf("无法获取%s字段的类型", fieldName))
 		} else {
 			return field, "", fieldName, nil
 		}
