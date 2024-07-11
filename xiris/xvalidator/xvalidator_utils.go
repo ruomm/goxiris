@@ -225,10 +225,7 @@ func xParseStructField(u interface{}, validationErr validator.FieldError) (refle
 		parentFieldBuilder := strings.Builder{}
 		subFieldName := fieldNames[len(fieldNames)-1]
 		for i := 0; i < len(fieldNames)-1; i++ {
-			//if parentFieldBuilder.Len() > 0 {
-			//
-			//}
-			parentFieldBuilder.WriteString(fieldNames[i])
+			parentFieldBuilder.WriteString(corex.FirstLetterToLower(fieldNames[i]))
 			parentFieldBuilder.WriteString(".")
 		}
 		for i := 0; i < len(fieldNames); i++ {
