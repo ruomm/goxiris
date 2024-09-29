@@ -44,7 +44,7 @@ type ApiVerfiyResult struct {
 	Tag          string   //# tag标识，使用tag标识可以区分不同角色权限控制
 }
 
-type XjwAuthHander func(ctx iris.Context, verifyResult *ApiVerfiyResult) bool
+type XjwAuthHander func(irisCtx iris.Context, verifyResult *ApiVerfiyResult) bool
 type XjwtHander struct {
 	config        string
 	webApiConfigs *WebApiConfigs
@@ -161,44 +161,44 @@ func (t *XjwtHander) LoadConfigByYaml(confYaml string, contextPath string, trace
 //	func (t *XjwtHander) LoadConfigByYaml(confYaml string) error {
 //		return t.LoadConfigByYamlWithContextPath(confYaml, "", "", "")
 //	}
-func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
-	handler := func(ctx iris.Context) {
-		reqMethod := ctx.Method()
-		fullURI := ctx.FullRequestURI()
+func (t *XjwtHander) GetJWTHandler() func(irisCtx iris.Context) {
+	handler := func(irisCtx iris.Context) {
+		reqMethod := irisCtx.Method()
+		fullURI := irisCtx.FullRequestURI()
 		// 判断traceIdKey不为空获取traceID
 		if t.webApiConfigs.TraceIdGetKey != "" {
-			traceId := ctx.GetHeader(t.webApiConfigs.TraceIdGetKey)
+			traceId := irisCtx.GetHeader(t.webApiConfigs.TraceIdGetKey)
 			if len(traceId) <= 0 {
 				timeNow := time.Now()
 				traceId = "be-" + corex.TimeFormatByString("20060102-150405", &timeNow) + "-" + fmt.Sprintf("%06d", rand.Intn(1000000))
 				if t.webApiConfigs.ToResponseHeader {
-					ctx.Header(t.webApiConfigs.TraceIdKey, traceId)
+					irisCtx.Header(t.webApiConfigs.TraceIdKey, traceId)
 				} else {
-					ctx.Request().Header.Set(t.webApiConfigs.TraceIdKey, traceId)
+					irisCtx.Request().Header.Set(t.webApiConfigs.TraceIdKey, traceId)
 				}
 			} else {
 				if t.webApiConfigs.ToResponseHeader {
-					ctx.Header(t.webApiConfigs.TraceIdKey, traceId)
+					irisCtx.Header(t.webApiConfigs.TraceIdKey, traceId)
 				} else {
 					if t.webApiConfigs.TraceIdKey != t.webApiConfigs.TraceIdGetKey {
-						ctx.Request().Header.Set(t.webApiConfigs.TraceIdKey, traceId)
+						irisCtx.Request().Header.Set(t.webApiConfigs.TraceIdKey, traceId)
 					}
 				}
 			}
 		}
 		if t.webApiConfigs.TraceTsKey != "" {
 			if t.webApiConfigs.ToResponseHeader {
-				ctx.Header(t.webApiConfigs.TraceTsKey, strconv.FormatInt(time.Now().UnixMilli(), 10))
+				irisCtx.Header(t.webApiConfigs.TraceTsKey, strconv.FormatInt(time.Now().UnixMilli(), 10))
 			} else {
-				ctx.Request().Header.Set(t.webApiConfigs.TraceTsKey, strconv.FormatInt(time.Now().UnixMilli(), 10))
+				irisCtx.Request().Header.Set(t.webApiConfigs.TraceTsKey, strconv.FormatInt(time.Now().UnixMilli(), 10))
 			}
 		}
-		fullRelativeURI := t.getFullRelativeURI(ctx, fullURI)
+		fullRelativeURI := t.getFullRelativeURI(irisCtx, fullURI)
 		if t.webApiConfigs.UriHeaderKey != "" && len(fullURI) > 0 {
 			if t.webApiConfigs.ToResponseHeader {
-				ctx.Header(t.webApiConfigs.UriHeaderKey, fullRelativeURI)
+				irisCtx.Header(t.webApiConfigs.UriHeaderKey, fullRelativeURI)
 			} else {
-				ctx.Request().Header.Set(t.webApiConfigs.UriHeaderKey, fullRelativeURI)
+				irisCtx.Request().Header.Set(t.webApiConfigs.UriHeaderKey, fullRelativeURI)
 			}
 		}
 		authPassResult := false
@@ -207,7 +207,7 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 		} else {
 			var apiVerifyResult *ApiVerfiyResult = nil
 			for _, webUriConfig := range t.webApiConfigs.WebApiConfigs {
-				tmpVerifyResult := t.verifyApiConfig(ctx, fullURI, fullRelativeURI, reqMethod, &webUriConfig)
+				tmpVerifyResult := t.verifyApiConfig(irisCtx, fullURI, fullRelativeURI, reqMethod, &webUriConfig)
 				if nil != tmpVerifyResult {
 					apiVerifyResult = tmpVerifyResult
 					break
@@ -218,7 +218,7 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 				gobalMode := parseAuthMode(t.webApiConfigs.DefaultMode)
 				gobalAuthToken := ""
 				if gobalMode == AUTH_MAY || gobalMode == AUTH_FORCE {
-					gobalAuthToken = getAccessToken(ctx, t.webApiConfigs.CookieAuthKey, t.webApiConfigs.HeaderAuthKey, t.webApiConfigs.UrlParamAuthKey, t.webApiConfigs.AuthInfoHeader)
+					gobalAuthToken = getAccessToken(irisCtx, t.webApiConfigs.CookieAuthKey, t.webApiConfigs.HeaderAuthKey, t.webApiConfigs.UrlParamAuthKey, t.webApiConfigs.AuthInfoHeader)
 				}
 				gobalApiVerifyResult := ApiVerfiyResult{
 					TraceIdKey: t.webApiConfigs.TraceIdKey,
@@ -237,24 +237,24 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 				authPassResult = true
 			}
 			if nil != t.authHander {
-				authPassResult = t.authHander(ctx, apiVerifyResult)
+				authPassResult = t.authHander(irisCtx, apiVerifyResult)
 			}
 		}
 
 		//传递到后续处理器
 		for {
-			h := ctx.NextHandler()
+			h := irisCtx.NextHandler()
 			if h != nil {
 				if authPassResult {
-					ctx.Next()
+					irisCtx.Next()
 				} else {
 					//校验失败
 					handleName := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 					if strings.HasPrefix(handleName, "github.com/kataras/iris") {
 						//跳过业务处理
-						ctx.Skip()
+						irisCtx.Skip()
 					} else {
-						ctx.Next()
+						irisCtx.Next()
 					}
 				}
 			} else {
@@ -265,9 +265,9 @@ func (t *XjwtHander) GetJWTHandler() func(ctx iris.Context) {
 	return handler
 }
 
-func (t *XjwtHander) getFullRelativeURI(ctx iris.Context, fullURI string) string {
+func (t *XjwtHander) getFullRelativeURI(irisCtx iris.Context, fullURI string) string {
 	relativeURI := ""
-	absURI := ctx.AbsoluteURI("/")
+	absURI := irisCtx.AbsoluteURI("/")
 	if len(fullURI) <= 0 || len(fullURI) <= len(absURI)+1 {
 		relativeURI = fullURI
 	} else if !strings.HasPrefix(fullURI, absURI) {
@@ -280,9 +280,9 @@ func (t *XjwtHander) getFullRelativeURI(ctx iris.Context, fullURI string) string
 }
 
 // 判断接口是否URI匹配和token校验是否通过
-func (t *XjwtHander) verifyApiConfig(ctx iris.Context, fullURI string, fullRelativeURI string, reqMethod string, webUriConfig *WebUriConfig) *ApiVerfiyResult {
+func (t *XjwtHander) verifyApiConfig(irisCtx iris.Context, fullURI string, fullRelativeURI string, reqMethod string, webUriConfig *WebUriConfig) *ApiVerfiyResult {
 	//获取绝对路径
-	absURI := ctx.AbsoluteURI(webUriConfig.UriAbs)
+	absURI := irisCtx.AbsoluteURI(webUriConfig.UriAbs)
 	if len(fullURI) <= 0 || len(fullURI) <= len(absURI)+1 || len(reqMethod) <= 0 {
 		return nil
 	}
@@ -293,7 +293,7 @@ func (t *XjwtHander) verifyApiConfig(ctx iris.Context, fullURI string, fullRelat
 	// 获取接口的相对路径
 	relativeURI := fullURI[len(absURI)+1:]
 	// 获取接口的真实地址
-	ipRemoteAddr := getIpRemoteAddr(ctx, webUriConfig.AgentRealIpHeader)
+	ipRemoteAddr := getIpRemoteAddr(irisCtx, webUriConfig.AgentRealIpHeader)
 	ipAllowGobal := verfiyIPAllow(ipRemoteAddr, webUriConfig.IpAllow)
 	//if !ipAllowGobal {
 	//	return &ApiVerfiyResult{TraceIdKey: t.webApiConfigs.TraceIdKey, TraceTsKey: t.webApiConfigs.TraceTsKey, Uri: webUriConfig.Uri, UriFull: fullRelativeURI, ApiPass: false, Method_Pass: false, IpAllow_Pass: false, Mode: AUTH_REFUSE}
@@ -321,7 +321,7 @@ func (t *XjwtHander) verifyApiConfig(ctx iris.Context, fullURI string, fullRelat
 		apiVerfiyResult.Mode = parseAuthMode(webUriConfig.DefaultMode)
 	}
 	if apiVerfiyResult.Mode == AUTH_FORCE || apiVerfiyResult.Mode == AUTH_MAY {
-		apiVerfiyResult.AuthToken = getAccessToken(ctx, webUriConfig.CookieAuthKey, webUriConfig.HeaderAuthKey, t.webApiConfigs.UrlParamAuthKey, webUriConfig.AuthInfoHeader)
+		apiVerfiyResult.AuthToken = getAccessToken(irisCtx, webUriConfig.CookieAuthKey, webUriConfig.HeaderAuthKey, t.webApiConfigs.UrlParamAuthKey, webUriConfig.AuthInfoHeader)
 	}
 	return &apiVerfiyResult
 }
@@ -349,10 +349,10 @@ func parseAuthMode(mode string) AuthMode {
 		return AUTH_REFUSE
 	}
 }
-func getIpRemoteAddr(ctx iris.Context, agentRealIpHeader string) string {
-	ipRemoteAddr := ctx.GetHeader(agentRealIpHeader)
+func getIpRemoteAddr(irisCtx iris.Context, agentRealIpHeader string) string {
+	ipRemoteAddr := irisCtx.GetHeader(agentRealIpHeader)
 	if ipRemoteAddr == "" {
-		ipRemoteAddr = ctx.RemoteAddr()
+		ipRemoteAddr = irisCtx.RemoteAddr()
 	}
 	return ipRemoteAddr
 }
@@ -431,11 +431,11 @@ func verifyRequestMethod(configMethod, reqMethod string) bool {
 }
 
 // 获取用户授权凭证信息
-func getAccessToken(ctx iris.Context, cookieAuthKey, headerAuthKey, uriParamAuthKey string, authInfoHeader string) string {
+func getAccessToken(irisCtx iris.Context, cookieAuthKey, headerAuthKey, uriParamAuthKey string, authInfoHeader string) string {
 	accessToken := ""
 	// 尝试从Cookie里面取用户授权凭证
 	if cookieAuthKey != "" {
-		pCookie, err := ctx.GetRequestCookie(cookieAuthKey)
+		pCookie, err := irisCtx.GetRequestCookie(cookieAuthKey)
 		if err == nil {
 			accessToken = pCookie.Value
 		}
@@ -443,13 +443,13 @@ func getAccessToken(ctx iris.Context, cookieAuthKey, headerAuthKey, uriParamAuth
 	// 尝试从header里面取用户授权凭证
 	if len(accessToken) <= 8 {
 		if headerAuthKey != "" {
-			accessToken = ctx.GetHeader(headerAuthKey)
+			accessToken = irisCtx.GetHeader(headerAuthKey)
 		}
 	}
 	// 尝试从请求参数里面取用户授权凭证
 	if len(accessToken) <= 8 {
 		if uriParamAuthKey != "" {
-			accessToken = xJwtGetUrlToken(ctx, uriParamAuthKey)
+			accessToken = xJwtGetUrlToken(irisCtx, uriParamAuthKey)
 		}
 
 	}
@@ -465,32 +465,32 @@ func getAccessToken(ctx iris.Context, cookieAuthKey, headerAuthKey, uriParamAuth
 	}
 	return accessToken
 }
-func xJwtGetUrlToken(ctx iris.Context, origKey string) string {
-	tmpToken := xJwtGetUrlQuery(ctx, origKey)
+func xJwtGetUrlToken(irisCtx iris.Context, origKey string) string {
+	tmpToken := xJwtGetUrlQuery(irisCtx, origKey)
 	if len(tmpToken) <= 8 {
-		tmpToken = xJwtGetUrlParam(ctx, origKey)
+		tmpToken = xJwtGetUrlParam(irisCtx, origKey)
 	}
 	return tmpToken
 }
 
-func xJwtGetUrlQuery(ctx iris.Context, origKey string) string {
+func xJwtGetUrlQuery(irisCtx iris.Context, origKey string) string {
 	if len(origKey) <= 0 {
 		return ""
 	}
-	if ctx.URLParamExists(origKey) {
-		paramVal := ctx.URLParam(origKey)
+	if irisCtx.URLParamExists(origKey) {
+		paramVal := irisCtx.URLParam(origKey)
 		return paramVal
 	} else {
 		return ""
 	}
 }
 
-func xJwtGetUrlParam(ctx iris.Context, origKey string) string {
+func xJwtGetUrlParam(irisCtx iris.Context, origKey string) string {
 	if len(origKey) <= 0 {
 		return ""
 	}
-	if ctx.Params().Exists(origKey) {
-		paramVal := ctx.Params().GetString(origKey)
+	if irisCtx.Params().Exists(origKey) {
+		paramVal := irisCtx.Params().GetString(origKey)
 		return paramVal
 	} else {
 		return ""
@@ -498,11 +498,11 @@ func xJwtGetUrlParam(ctx iris.Context, origKey string) string {
 }
 
 // 获取用户授权凭证信息
-//func getAccessToken(ctx iris.Context, webApiConfig *WebApiConfigs) string {
+//func getAccessToken(irisCtx iris.Context, webApiConfig *WebApiConfigs) string {
 //	accessToken := ""
 //	// 尝试从Cookie里面取用户授权凭证
 //	if webUriConfig.CookieAuthKey != "" {
-//		pCookie, err := ctx.GetRequestCookie(webUriConfig.CookieAuthKey)
+//		pCookie, err := irisCtx.GetRequestCookie(webUriConfig.CookieAuthKey)
 //		if err == nil {
 //			accessToken = pCookie.Value
 //		}
@@ -510,12 +510,12 @@ func xJwtGetUrlParam(ctx iris.Context, origKey string) string {
 //	// 尝试从header里面取用户授权凭证
 //	if len(accessToken) <= 8 {
 //		if webUriConfig.HeaderAuthKey != "" {
-//			accessToken = ctx.GetHeader(webUriConfig.HeaderAuthKey)
+//			accessToken = irisCtx.GetHeader(webUriConfig.HeaderAuthKey)
 //		}
 //	}
 //	// 尝试从请求参数里面取用户授权凭证
 //	//if len(accessToken) <= 8 {
-//	//	tmpAccessToken := ctx.URLParam(common.COOKIE_KEY_AUTH_TOKEN)
+//	//	tmpAccessToken := irisCtx.URLParam(common.COOKIE_KEY_AUTH_TOKEN)
 //	//	if len(tmpAccessToken) > 8 {
 //	//		accessToken = tmpAccessToken
 //	//	}

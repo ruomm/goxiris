@@ -129,7 +129,7 @@ type XTraceInfo struct {
 /*
 * 获取一个带TraceInfo的Context环境变量
  */
-func (t *XTraceClient) ToTraceContext(uCtx iris.Context) context.Context {
+func (t *XTraceClient) ToTraceContext(irisCtx iris.Context) context.Context {
 	traceId := ""
 	uriStr := ""
 	tsHeader := ""
@@ -137,19 +137,19 @@ func (t *XTraceClient) ToTraceContext(uCtx iris.Context) context.Context {
 	userNameStr := ""
 	userRoleIdStr := ""
 	if t.ByResponse {
-		traceId = uCtx.ResponseWriter().Header().Get(t.KeyTraceId)
-		uriStr = uCtx.ResponseWriter().Header().Get(t.KeyUri)
-		tsHeader = uCtx.ResponseWriter().Header().Get(t.KeyTs)
-		userIdStr = uCtx.ResponseWriter().Header().Get(t.KeyUserId)
-		userNameStr = uCtx.ResponseWriter().Header().Get(t.KeyUserName)
-		userRoleIdStr = uCtx.ResponseWriter().Header().Get(t.KeyRoleId)
+		traceId = irisCtx.ResponseWriter().Header().Get(t.KeyTraceId)
+		uriStr = irisCtx.ResponseWriter().Header().Get(t.KeyUri)
+		tsHeader = irisCtx.ResponseWriter().Header().Get(t.KeyTs)
+		userIdStr = irisCtx.ResponseWriter().Header().Get(t.KeyUserId)
+		userNameStr = irisCtx.ResponseWriter().Header().Get(t.KeyUserName)
+		userRoleIdStr = irisCtx.ResponseWriter().Header().Get(t.KeyRoleId)
 	} else {
-		traceId = uCtx.GetHeader(t.KeyTraceId)
-		uriStr = uCtx.GetHeader(t.KeyUri)
-		tsHeader = uCtx.GetHeader(t.KeyTs)
-		userIdStr = uCtx.GetHeader(t.KeyUserId)
-		userNameStr = uCtx.GetHeader(t.KeyUserName)
-		userRoleIdStr = uCtx.GetHeader(t.KeyRoleId)
+		traceId = irisCtx.GetHeader(t.KeyTraceId)
+		uriStr = irisCtx.GetHeader(t.KeyUri)
+		tsHeader = irisCtx.GetHeader(t.KeyTs)
+		userIdStr = irisCtx.GetHeader(t.KeyUserId)
+		userNameStr = irisCtx.GetHeader(t.KeyUserName)
+		userRoleIdStr = irisCtx.GetHeader(t.KeyRoleId)
 	}
 	var userId uint = 0
 	if len(userIdStr) > 0 {
@@ -196,11 +196,11 @@ func (t *XTraceClient) ToTraceContext(uCtx iris.Context) context.Context {
 /**
 * 从Context环境变量中获取traceInfo
  */
-func (t *XTraceClient) GetTraceInfo(pCtx context.Context) *XTraceInfo {
-	if pCtx == nil {
+func (t *XTraceClient) GetTraceInfo(ctx context.Context) *XTraceInfo {
+	if ctx == nil {
 		return nil
 	}
-	pTraceInfoAny := pCtx.Value(t.KeyTraceSave)
+	pTraceInfoAny := ctx.Value(t.KeyTraceSave)
 	if pTraceInfoAny == nil {
 		return nil
 	}
@@ -211,52 +211,52 @@ func (t *XTraceClient) GetTraceInfo(pCtx context.Context) *XTraceInfo {
 /**
 * 从Context环境变量中清理traceInfo
  */
-func (t *XTraceClient) CleanTraceInfoAll(uCtx iris.Context) {
-	t.cleanTraceInfoCommon(uCtx, true)
+func (t *XTraceClient) CleanTraceInfoAll(irisCtx iris.Context) {
+	t.cleanTraceInfoCommon(irisCtx, true)
 }
 
 /**
 * 从Context环境变量中清理traceInfo
  */
-func (t *XTraceClient) CleanTraceInfoLite(uCtx iris.Context) {
-	t.cleanTraceInfoCommon(uCtx, false)
+func (t *XTraceClient) CleanTraceInfoLite(irisCtx iris.Context) {
+	t.cleanTraceInfoCommon(irisCtx, false)
 }
 
 /**
 * 从Context环境变量中清理traceInfo
  */
-func (t *XTraceClient) cleanTraceInfoCommon(uCtx iris.Context, fullClean bool) {
-	if uCtx == nil || !t.ByResponse {
+func (t *XTraceClient) cleanTraceInfoCommon(irisCtx iris.Context, fullClean bool) {
+	if irisCtx == nil || !t.ByResponse {
 		return
 	}
 	if len(t.KeyTraceId) > 0 && fullClean {
-		uCtx.ResponseWriter().Header().Del(t.KeyTraceId)
+		irisCtx.ResponseWriter().Header().Del(t.KeyTraceId)
 	}
 	if len(t.KeyTs) > 0 {
-		uCtx.ResponseWriter().Header().Del(t.KeyTs)
+		irisCtx.ResponseWriter().Header().Del(t.KeyTs)
 	}
 	if len(t.KeyUri) > 0 {
-		uCtx.ResponseWriter().Header().Del(t.KeyUri)
+		irisCtx.ResponseWriter().Header().Del(t.KeyUri)
 	}
 	if len(t.KeyUserId) > 0 && fullClean {
-		uCtx.ResponseWriter().Header().Del(t.KeyUserId)
+		irisCtx.ResponseWriter().Header().Del(t.KeyUserId)
 	}
 	if len(t.KeyUserName) > 0 && fullClean {
-		uCtx.ResponseWriter().Header().Del(t.KeyUserName)
+		irisCtx.ResponseWriter().Header().Del(t.KeyUserName)
 	}
 	if len(t.KeyRoleId) > 0 && fullClean {
-		uCtx.ResponseWriter().Header().Del(t.KeyRoleId)
+		irisCtx.ResponseWriter().Header().Del(t.KeyRoleId)
 	}
 }
 
 /**
 * 从Context环境变量中获取traceId
  */
-func (t *XTraceClient) TraceIdFromContext(pCtx context.Context) string {
-	if pCtx == nil {
+func (t *XTraceClient) TraceIdFromContext(ctx context.Context) string {
+	if ctx == nil {
 		return ""
 	}
-	pTraceInfoAny := pCtx.Value(t.KeyTraceSave)
+	pTraceInfoAny := ctx.Value(t.KeyTraceSave)
 	if pTraceInfoAny == nil {
 		return ""
 	}
@@ -270,11 +270,11 @@ func (t *XTraceClient) TraceIdFromContext(pCtx context.Context) string {
 /**
 * 从Context环境变量中获取URI
  */
-func (t *XTraceClient) URIFromContext(pCtx context.Context) string {
-	if pCtx == nil {
+func (t *XTraceClient) URIFromContext(ctx context.Context) string {
+	if ctx == nil {
 		return ""
 	}
-	pTraceInfoAny := pCtx.Value(t.KeyTraceSave)
+	pTraceInfoAny := ctx.Value(t.KeyTraceSave)
 	if pTraceInfoAny == nil {
 		return ""
 	}
@@ -288,11 +288,11 @@ func (t *XTraceClient) URIFromContext(pCtx context.Context) string {
 /**
 * 从Context环境变量中获取userName
  */
-func (t *XTraceClient) UserNameFromContext(pCtx context.Context) string {
-	if pCtx == nil {
+func (t *XTraceClient) UserNameFromContext(ctx context.Context) string {
+	if ctx == nil {
 		return ""
 	}
-	pTraceInfoAny := pCtx.Value(t.KeyTraceSave)
+	pTraceInfoAny := ctx.Value(t.KeyTraceSave)
 	if pTraceInfoAny == nil {
 		return ""
 	}
@@ -306,11 +306,11 @@ func (t *XTraceClient) UserNameFromContext(pCtx context.Context) string {
 /**
 * 从Context环境变量中获取userId
  */
-func (t *XTraceClient) UserIdFromContext(pCtx context.Context) uint {
-	if pCtx == nil {
+func (t *XTraceClient) UserIdFromContext(ctx context.Context) uint {
+	if ctx == nil {
 		return 0
 	}
-	pTraceInfoAny := pCtx.Value(t.KeyTraceSave)
+	pTraceInfoAny := ctx.Value(t.KeyTraceSave)
 	if pTraceInfoAny == nil {
 		return 0
 	}
@@ -324,11 +324,11 @@ func (t *XTraceClient) UserIdFromContext(pCtx context.Context) uint {
 /**
 * 从Context环境变量中获取roleId
  */
-func (t *XTraceClient) RoleIdFromContext(pCtx context.Context) uint32 {
-	if pCtx == nil {
+func (t *XTraceClient) RoleIdFromContext(ctx context.Context) uint32 {
+	if ctx == nil {
 		return 0
 	}
-	pTraceInfoAny := pCtx.Value(t.KeyTraceSave)
+	pTraceInfoAny := ctx.Value(t.KeyTraceSave)
 	if pTraceInfoAny == nil {
 		return 0
 	}
@@ -341,14 +341,14 @@ func (t *XTraceClient) RoleIdFromContext(pCtx context.Context) uint32 {
 
 /*
 * 时间统计插入点
-uCtx 环境
+ctx 环境
 eventName 事件名称或者步骤名称
 */
-func (t *XTraceClient) TraceTimePoint(pCtx context.Context, eventName string) {
-	if pCtx == nil {
+func (t *XTraceClient) TraceTimePoint(ctx context.Context, eventName string) {
+	if ctx == nil {
 		return
 	}
-	pTraceInfoAny := pCtx.Value(t.KeyTraceSave)
+	pTraceInfoAny := ctx.Value(t.KeyTraceSave)
 	if pTraceInfoAny == nil {
 		return
 	}
@@ -375,13 +375,13 @@ func (t *XTraceClient) TraceTimePoint(pCtx context.Context, eventName string) {
 
 /*
 * 时间统计打印信息
-uCtx 环境
+ctx 环境
 */
-func (t *XTraceClient) TraceTimePrint(pCtx context.Context) string {
-	if pCtx == nil {
+func (t *XTraceClient) TraceTimePrint(ctx context.Context) string {
+	if ctx == nil {
 		return ""
 	}
-	pTraceInfoAny := pCtx.Value(t.KeyTraceSave)
+	pTraceInfoAny := ctx.Value(t.KeyTraceSave)
 	if pTraceInfoAny == nil {
 		return ""
 	}

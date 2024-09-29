@@ -25,7 +25,7 @@ const (
 	xRequest_Option_Response = "resp"
 )
 
-type XRequestHander func(ctx iris.Context, origKey string, key string, cpOpt string) (interface{}, error)
+type XRequestHander func(irisCtx iris.Context, origKey string, key string, cpOpt string) (interface{}, error)
 
 var xRequestHandler XRequestHander = nil
 
@@ -41,27 +41,27 @@ func ConfigshowFirstError(show bool) {
 	showFirstError = show
 }
 
-func XRequestParse(pCtx iris.Context, req interface{}) (error, *[]xresponse.ParamError) {
+func XRequestParse(irisCtx iris.Context, req interface{}) (error, *[]xresponse.ParamError) {
 	// 解析参数
-	err := xReq_parse(pCtx, req)
+	err := xReq_parse(irisCtx, req)
 	if err != nil {
 		return err, nil
 	}
 	// 验证参数
 	return xvalidator.XValidator(req, showFirstError)
 }
-func xReq_parse(ctx iris.Context, req interface{}) error {
-	//if "POST" == ctx.Method() || "PUT" == ctx.Method() {
-	//	err := ctx.ReadJSON(req)
+func xReq_parse(irisCtx iris.Context, req interface{}) error {
+	//if "POST" == irisCtx.Method() || "PUT" == irisCtx.Method() {
+	//	err := irisCtx.ReadJSON(req)
 	//	if err != nil {
 	//		return errors.New("解析JSON参数失败")
 	//	}
-	//} else if "GET" != ctx.Method() {
-	//	ctx.ReadJSON(req)
+	//} else if "GET" != irisCtx.Method() {
+	//	irisCtx.ReadJSON(req)
 	//}
 
-	if "GET" != ctx.Method() {
-		body, err := ctx.GetBody()
+	if "GET" != irisCtx.Method() {
+		body, err := irisCtx.GetBody()
 		if err != nil {
 			return errors.New("读取请求body错误")
 		}
@@ -74,8 +74,8 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 	}
 	// 解析URI参数
 	xrefHanderParam := refxstandard.XrefHandler(func(origKey string, key string, cpOpt string) (interface{}, error) {
-		if ctx.Params().Exists(origKey) {
-			paramVal := ctx.Params().GetString(origKey)
+		if irisCtx.Params().Exists(origKey) {
+			paramVal := irisCtx.Params().GetString(origKey)
 			if len(paramVal) > 0 {
 				return paramVal, nil
 			} else {
@@ -91,8 +91,8 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 	}
 	// 解析query参数
 	xrefHanderQuery := refxstandard.XrefHandler(func(origKey string, key string, cpOpt string) (interface{}, error) {
-		if ctx.URLParamExists(origKey) {
-			paramVal := ctx.URLParam(origKey)
+		if irisCtx.URLParamExists(origKey) {
+			paramVal := irisCtx.URLParam(origKey)
 			if len(paramVal) > 0 {
 				return paramVal, nil
 			} else {
@@ -109,14 +109,14 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 	// 解析header参数
 	xrefHanderHeader := refxstandard.XrefHandler(func(origKey string, key string, cpOpt string) (interface{}, error) {
 		if xTagContainKey(cpOpt, xRequest_Option_Response) {
-			paramVal := ctx.ResponseWriter().Header().Get(origKey)
+			paramVal := irisCtx.ResponseWriter().Header().Get(origKey)
 			if len(paramVal) > 0 {
 				return paramVal, nil
 			} else {
 				return nil, nil
 			}
 		} else {
-			paramVal := ctx.GetHeader(origKey)
+			paramVal := irisCtx.GetHeader(origKey)
 			if len(paramVal) > 0 {
 				return paramVal, nil
 			} else {
@@ -130,7 +130,7 @@ func xReq_parse(ctx iris.Context, req interface{}) error {
 	}
 	if nil != xRequestHandler {
 		xrefHanderRefx := refxstandard.XrefHandler(func(origKey string, key string, cpOpt string) (interface{}, error) {
-			return xRequestHandler(ctx, origKey, key, cpOpt)
+			return xRequestHandler(irisCtx, origKey, key, cpOpt)
 		})
 		// 解析自定义refx参数
 		errGRefx, transFailsKeysRefx := refxstandard.XRefHandlerCopy(xrefHanderRefx, req, refxstandard.XrefOptTag(xRequest_Parse_refx), refxstandard.XrefOptCheckUnsigned(true))
