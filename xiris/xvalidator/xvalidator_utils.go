@@ -375,7 +375,13 @@ func xValid_Register_xnorepeat(fl validator.FieldLevel) bool {
 	default:
 		flparam := fl.Param()
 		flSlice := field.Interface()
-		sliceDuplicates := corex.SliceDuplicatesByKey(flSlice, flparam)
+		sliceParam := corex.StringToSlice(flparam, " ", false)
+		sliceDuplicates := true
+		if len(sliceParam) <= 0 {
+			sliceDuplicates = corex.SliceDuplicates(flSlice)
+		} else {
+			sliceDuplicates = corex.SliceDuplicatesByKey(flSlice, sliceParam...)
+		}
 		if sliceDuplicates {
 			return false
 		} else {
