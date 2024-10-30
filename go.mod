@@ -1,12 +1,12 @@
 module github.com/ruomm/goxiris
 
-go 1.21.6
+go 1.21
 
 require (
 	github.com/go-playground/validator/v10 v10.17.0
 	github.com/gomodule/redigo v1.8.9
 	github.com/kataras/iris/v12 v12.2.0
-	github.com/ruomm/goxframework v1.6.6
+	github.com/ruomm/goxframework v1.6.8
 	gopkg.in/yaml.v2 v2.4.0
 )
 
