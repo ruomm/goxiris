@@ -14,6 +14,7 @@ import (
 	"github.com/ruomm/goxframework/gox/refxstandard"
 	"github.com/ruomm/goxiris/xiris/xresponse"
 	"github.com/ruomm/goxiris/xiris/xvalidator"
+	"strings"
 )
 
 const (
@@ -30,6 +31,7 @@ type XRequestHander func(irisCtx iris.Context, origKey string, key string, cpOpt
 var xRequestHandler XRequestHander = nil
 
 var showFirstError bool = false
+var showParseError bool = false
 
 // 配置XRequestHander
 func ConfigRequestHandler(handler XRequestHander) {
@@ -37,20 +39,25 @@ func ConfigRequestHandler(handler XRequestHander) {
 }
 
 // 配置是否显示第一条错误信息
-func ConfigshowFirstError(show bool) {
+func ConfigShowFirstError(show bool) {
 	showFirstError = show
+}
+
+// 配置是否返回详细错误信息
+func ConfigShowParseError(show bool) {
+	showParseError = show
 }
 
 func XRequestParse(irisCtx iris.Context, req interface{}) (error, *[]xresponse.ParamError) {
 	// 解析参数
-	err := xReq_parse(irisCtx, req)
+	err, paramErrs := xReq_parse(irisCtx, req)
 	if err != nil {
-		return err, nil
+		return err, paramErrs
 	}
 	// 验证参数
 	return xvalidator.XValidator(req, showFirstError)
 }
-func xReq_parse(irisCtx iris.Context, req interface{}) error {
+func xReq_parse(irisCtx iris.Context, req interface{}) (error, *[]xresponse.ParamError) {
 	//if "POST" == irisCtx.Method() || "PUT" == irisCtx.Method() {
 	//	err := irisCtx.ReadJSON(req)
 	//	if err != nil {
@@ -59,16 +66,18 @@ func xReq_parse(irisCtx iris.Context, req interface{}) error {
 	//} else if "GET" != irisCtx.Method() {
 	//	irisCtx.ReadJSON(req)
 	//}
-
+	var paramErrors []xresponse.ParamError
 	if "GET" != irisCtx.Method() {
 		body, err := irisCtx.GetBody()
-		if err != nil {
-			return errors.New("读取请求body错误")
+		if showParseError && err != nil {
+			paramErrors = append(paramErrors, xresponse.ParamError{Field: "body_read" + "-err", Message: err.Error()})
+			return errors.New("读取请求body错误"), &paramErrors
 		}
 		if body != nil && len(body) > 0 {
 			errJSON := json.Unmarshal(body, req)
-			if errJSON != nil {
-				return errors.New("解析JSON参数失败")
+			if showParseError && errJSON != nil {
+				paramErrors = append(paramErrors, xresponse.ParamError{Field: "json_unmarshal" + "-err", Message: errJSON.Error()})
+				return errors.New("解析JSON参数失败"), &paramErrors
 			}
 		}
 	}
@@ -87,7 +96,13 @@ func xReq_parse(irisCtx iris.Context, req interface{}) error {
 	})
 	errGParam, transFailsKeysParam := refxstandard.XRefHandlerCopy(xrefHanderParam, req, refxstandard.XrefOptTag(xRequest_Parse_Param), refxstandard.XrefOptCheckUnsigned(true))
 	if errGParam != nil || len(transFailsKeysParam) > 0 {
-		return errors.New("解析URI参数失败")
+		if showParseError && errGParam != nil {
+			paramErrors = append(paramErrors, xresponse.ParamError{Field: xRequest_Parse_Param + "-err", Message: errGParam.Error()})
+		}
+		if showParseError && len(transFailsKeysParam) > 0 {
+			paramErrors = append(paramErrors, xresponse.ParamError{Field: xRequest_Parse_Param + "-keys", Message: strings.Join(transFailsKeysParam, ",")})
+		}
+		return errors.New("解析URI参数失败"), &paramErrors
 	}
 	// 解析query参数
 	xrefHanderQuery := refxstandard.XrefHandler(func(origKey string, key string, cpOpt string) (interface{}, error) {
@@ -104,7 +119,13 @@ func xReq_parse(irisCtx iris.Context, req interface{}) error {
 	})
 	errGQuery, transFailsKeysQuery := refxstandard.XRefHandlerCopy(xrefHanderQuery, req, refxstandard.XrefOptTag(xRequest_Parse_Query), refxstandard.XrefOptCheckUnsigned(true))
 	if errGQuery != nil || len(transFailsKeysQuery) > 0 {
-		return errors.New("解析Query参数失败")
+		if showParseError && errGQuery != nil {
+			paramErrors = append(paramErrors, xresponse.ParamError{Field: xRequest_Parse_Query + "-err", Message: errGQuery.Error()})
+		}
+		if showParseError && len(transFailsKeysQuery) > 0 {
+			paramErrors = append(paramErrors, xresponse.ParamError{Field: xRequest_Parse_Query + "-keys", Message: strings.Join(transFailsKeysQuery, ",")})
+		}
+		return errors.New("解析Query参数失败"), &paramErrors
 	}
 	// 解析header参数
 	xrefHanderHeader := refxstandard.XrefHandler(func(origKey string, key string, cpOpt string) (interface{}, error) {
@@ -126,7 +147,13 @@ func xReq_parse(irisCtx iris.Context, req interface{}) error {
 	})
 	errGHeader, transFailsKeysHeader := refxstandard.XRefHandlerCopy(xrefHanderHeader, req, refxstandard.XrefOptTag(xRequest_Parse_Header), refxstandard.XrefOptCheckUnsigned(true))
 	if errGHeader != nil || len(transFailsKeysHeader) > 0 {
-		return errors.New("解析Header参数失败")
+		if showParseError && errGHeader != nil {
+			paramErrors = append(paramErrors, xresponse.ParamError{Field: xRequest_Parse_Header + "-err", Message: errGHeader.Error()})
+		}
+		if showParseError && len(transFailsKeysHeader) > 0 {
+			paramErrors = append(paramErrors, xresponse.ParamError{Field: xRequest_Parse_Header + "-keys", Message: strings.Join(transFailsKeysHeader, ",")})
+		}
+		return errors.New("解析Header参数失败"), &paramErrors
 	}
 	if nil != xRequestHandler {
 		xrefHanderRefx := refxstandard.XrefHandler(func(origKey string, key string, cpOpt string) (interface{}, error) {
@@ -134,11 +161,17 @@ func xReq_parse(irisCtx iris.Context, req interface{}) error {
 		})
 		// 解析自定义refx参数
 		errGRefx, transFailsKeysRefx := refxstandard.XRefHandlerCopy(xrefHanderRefx, req, refxstandard.XrefOptTag(xRequest_Parse_refx), refxstandard.XrefOptCheckUnsigned(true))
+		if showParseError && errGRefx != nil {
+			paramErrors = append(paramErrors, xresponse.ParamError{Field: xRequest_Parse_refx + "-err", Message: errGRefx.Error()})
+		}
+		if showParseError && len(transFailsKeysRefx) > 0 {
+			paramErrors = append(paramErrors, xresponse.ParamError{Field: xRequest_Parse_refx + "-keys", Message: strings.Join(transFailsKeysRefx, ",")})
+		}
 		if errGRefx != nil || len(transFailsKeysRefx) > 0 {
-			return errors.New("解析自定义refx参数失败")
+			return errors.New("解析自定义refx参数失败"), &paramErrors
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func xTagContainKey(tagValue string, key string) bool {
