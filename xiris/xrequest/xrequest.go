@@ -7,6 +7,7 @@
 package xrequest
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"github.com/kataras/iris/v12"
@@ -14,6 +15,7 @@ import (
 	"github.com/ruomm/goxframework/gox/refxstandard"
 	"github.com/ruomm/goxiris/xiris/xresponse"
 	"github.com/ruomm/goxiris/xiris/xvalidator"
+	"io"
 	"strings"
 )
 
@@ -57,7 +59,7 @@ func XRequestParse(irisCtx iris.Context, req interface{}) (error, *[]xresponse.P
 	// 验证参数
 	return xvalidator.XValidator(req, showFirstError)
 }
-func xReq_parse(irisCtx iris.Context, req interface{}) (error, *[]xresponse.ParamError) {
+func xReq_parse(irisCtx iris.Context, req interface{}, opts ...iris.JSONReader) (error, *[]xresponse.ParamError) {
 	//if "POST" == irisCtx.Method() || "PUT" == irisCtx.Method() {
 	//	err := irisCtx.ReadJSON(req)
 	//	if err != nil {
@@ -68,7 +70,8 @@ func xReq_parse(irisCtx iris.Context, req interface{}) (error, *[]xresponse.Para
 	//}
 	var paramErrors []xresponse.ParamError
 	if "GET" != irisCtx.Method() {
-		body, err := irisCtx.GetBody()
+		//body, err := irisCtx.GetBody()
+		body, err := xGetReusedBody(irisCtx)
 		if showParseError && err != nil {
 			paramErrors = append(paramErrors, xresponse.ParamError{Field: "body_read" + "-err", Message: err.Error()})
 			return errors.New("读取请求body错误"), &paramErrors
@@ -176,4 +179,25 @@ func xReq_parse(irisCtx iris.Context, req interface{}) (error, *[]xresponse.Para
 
 func xTagContainKey(tagValue string, key string) bool {
 	return corex.TagOptions(tagValue).Contains(key)
+}
+
+func xGetReusedBody(irisCtx iris.Context) ([]byte, error) {
+	var body io.Reader
+	if irisCtx.IsRecordingBody() {
+		data, err := io.ReadAll(irisCtx.Request().Body)
+		if err != nil {
+			return nil, err
+		}
+		irisCtx.Request().Body = io.NopCloser(bytes.NewBuffer(data))
+		body = bytes.NewReader(data)
+
+	} else {
+		body = irisCtx.Request().Body
+	}
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return nil, err
+	} else {
+		return data, nil
+	}
 }
