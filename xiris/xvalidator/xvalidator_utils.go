@@ -79,6 +79,15 @@ func XValidatorInit() error {
 	if err != nil {
 		return err
 	}
+	err = Validator.RegisterValidation("xquerytime", xValid_Register_QueryTime)
+	if err != nil {
+		return err
+	}
+
+	err = Validator.RegisterValidation("xquerydayortime", xValid_Register_QueryDayOrTime)
+	if err != nil {
+		return err
+	}
 	err = Validator.RegisterValidation("xthhmmss", xValid_Register_xthhmmss)
 	if err != nil {
 		return err
@@ -477,6 +486,43 @@ func xValid_Register_QueryMonth(fl validator.FieldLevel) bool {
 		return false
 	}
 	return validResult
+}
+
+// 验证查询日期
+func xValid_Register_QueryDayOrTime(fl validator.FieldLevel) bool {
+	flString, _ := XValidParseToString(fl)
+	flStrLen := len(flString)
+	if flStrLen != 10 && flStrLen != 19 {
+		return false
+	}
+	if flStrLen == 10 {
+		flString = flString + " 00:00:00"
+	}
+	timeParse, err := corex.TimeParseByString(corex.TIME_PATTERN_STANDARD, flString)
+	if err != nil {
+		return false
+	}
+	if timeParse == nil {
+		return false
+	}
+	return true
+}
+
+// 验证查询日期
+func xValid_Register_QueryTime(fl validator.FieldLevel) bool {
+	flString, _ := XValidParseToString(fl)
+	flStrLen := len(flString)
+	if flStrLen != 19 {
+		return false
+	}
+	timeParse, err := corex.TimeParseByString(corex.TIME_PATTERN_STANDARD, flString)
+	if err != nil {
+		return false
+	}
+	if timeParse == nil {
+		return false
+	}
+	return true
 }
 
 // 验证WEB网址，必须是https或http协议，没有参数协议后面至少1位字符串，由参数则协议后字符串长度必须大于等于参数值
