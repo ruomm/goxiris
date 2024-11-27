@@ -4,7 +4,7 @@
  * @create 2024/11/27 16:14
  * @version 1.0
  */
-package isisutils
+package irisutils
 
 import (
 	"bufio"
