@@ -578,9 +578,12 @@ func old_xValid_Register_xfilename(fl validator.FieldLevel) bool {
 
 // 验证是否文件
 func xValid_Register_xfilename(fl validator.FieldLevel) bool {
-	validResult, flStr := XValid_Register_Regex(fl, "^[a-zA-Z0-9-_\\.]{1,255}$")
-	if !validResult {
-		return validResult
+	flStr, _ := XValidParseToString(fl)
+	if len(flStr) <= 0 {
+		return false
+	}
+	if strings.Contains(flStr, "/") || strings.Contains(flStr, "\\") || strings.Contains(flStr, "\r") || strings.Contains(flStr, "\n") || strings.Contains(flStr, "\t") {
+		return false
 	}
 	if strings.HasSuffix(flStr, ".") {
 		return false
