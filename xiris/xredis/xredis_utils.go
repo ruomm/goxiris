@@ -43,6 +43,7 @@ type XRedisClient struct {
 
 var xRedisClient *XRedisClient
 
+// 初始化redis配置文件
 func RedisClientInit(appEnv string, redisConfig interface{}) {
 	xClient := XRedisClient{}
 	refx.XRefStructCopy(redisConfig, &xClient)
@@ -65,9 +66,13 @@ func RedisClientInit(appEnv string, redisConfig interface{}) {
 	}
 	xRedisClient = &xClient
 }
+
+// redis单例
 func SingleRedisClient() *XRedisClient {
 	return xRedisClient
 }
+
+// 初始化RedisPool
 func (t *XRedisClient) InitPull() {
 	var dial func() (redis.Conn, error) = nil
 	if t.Password == "" && t.ClientName == "" {
@@ -101,6 +106,8 @@ func (t *XRedisClient) InitPull() {
 	}
 
 }
+
+// redis删除指定的key
 func (t *XRedisClient) Del(key string) error {
 	// 执行Redis命令
 	conn := t.RedisPool.Get()
@@ -111,6 +118,8 @@ func (t *XRedisClient) Del(key string) error {
 	_, err := conn.Do("DEL", key)
 	return err
 }
+
+// redis检索指定的key是否存在
 func (t *XRedisClient) Exists(key string) (bool, error) {
 	// 执行Redis命令
 	conn := t.RedisPool.Get()
@@ -126,6 +135,7 @@ func (t *XRedisClient) Exists(key string) (bool, error) {
 	return exists, err
 }
 
+// redis设置key-value
 func (t *XRedisClient) Set(key string, value interface{}) error {
 	// 执行Redis命令
 	conn := t.RedisPool.Get()
@@ -136,6 +146,8 @@ func (t *XRedisClient) Set(key string, value interface{}) error {
 	_, err := conn.Do("Set", key, value)
 	return err
 }
+
+// redis设置key-expiresAt-value
 func (t *XRedisClient) SetEx(key string, expiresAt int, value interface{}) error {
 	// 执行Redis命令
 	conn := t.RedisPool.Get()
@@ -147,6 +159,7 @@ func (t *XRedisClient) SetEx(key string, expiresAt int, value interface{}) error
 	return err
 }
 
+// redis设置key-value
 func (t *XRedisClient) SetObject(key string, value interface{}) error {
 	dataJson, errJson := json.Marshal(value)
 	if errJson != nil {
@@ -161,6 +174,8 @@ func (t *XRedisClient) SetObject(key string, value interface{}) error {
 	_, err := conn.Do("Set", key, string(dataJson))
 	return err
 }
+
+// redis设置key-expiresAt-value
 func (t *XRedisClient) SetExObject(key string, expiresAt int, value interface{}) error {
 	dataJson, errJson := json.Marshal(value)
 	if errJson != nil {
@@ -176,6 +191,7 @@ func (t *XRedisClient) SetExObject(key string, expiresAt int, value interface{})
 	return err
 }
 
+// redis依据key获取字符串
 func (t *XRedisClient) GetString(key string) (string, error) {
 	// 执行Redis命令
 	conn := t.RedisPool.Get()
@@ -187,6 +203,7 @@ func (t *XRedisClient) GetString(key string) (string, error) {
 	return reply, err
 }
 
+// redis依据key获取对象，使用JSON解析
 func (t *XRedisClient) GetObject(key string, v interface{}) error {
 	// 执行Redis命令
 	conn := t.RedisPool.Get()
@@ -201,6 +218,8 @@ func (t *XRedisClient) GetObject(key string, v interface{}) error {
 	err = json.Unmarshal([]byte(reply), v)
 	return err
 }
+
+// redis依据key获取Int
 func (t *XRedisClient) GetInt(key string) (int, error) {
 	// 执行Redis命令
 	conn := t.RedisPool.Get()
@@ -211,6 +230,8 @@ func (t *XRedisClient) GetInt(key string) (int, error) {
 	reply, err := redis.Int(conn.Do("GET", key))
 	return reply, err
 }
+
+// redis依据key获取Int64
 func (t *XRedisClient) GetInt64(key string) (int64, error) {
 	// 执行Redis命令
 	conn := t.RedisPool.Get()
@@ -219,5 +240,41 @@ func (t *XRedisClient) GetInt64(key string) (int64, error) {
 		return 0, conn.Err()
 	}
 	reply, err := redis.Int64(conn.Do("GET", key))
+	return reply, err
+}
+
+// redis依据key获取Uint64
+func (t *XRedisClient) GetUint64(key string) (uint64, error) {
+	// 执行Redis命令
+	conn := t.RedisPool.Get()
+	defer conn.Close()
+	if conn.Err() != nil {
+		return 0, conn.Err()
+	}
+	reply, err := redis.Uint64(conn.Do("GET", key))
+	return reply, err
+}
+
+// redis依据key获取Float64
+func (t *XRedisClient) GetFloat64(key string) (float64, error) {
+	// 执行Redis命令
+	conn := t.RedisPool.Get()
+	defer conn.Close()
+	if conn.Err() != nil {
+		return 0, conn.Err()
+	}
+	reply, err := redis.Float64(conn.Do("GET", key))
+	return reply, err
+}
+
+// redis依据key获取bool
+func (t *XRedisClient) GetBool(key string) (bool, error) {
+	// 执行Redis命令
+	conn := t.RedisPool.Get()
+	defer conn.Close()
+	if conn.Err() != nil {
+		return false, conn.Err()
+	}
+	reply, err := redis.Bool(conn.Do("GET", key))
 	return reply, err
 }
