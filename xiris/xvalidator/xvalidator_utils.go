@@ -33,7 +33,31 @@ var (
 	Validator *validator.Validate
 )
 
+// 初始化validator.Validate
 func XValidatorInit() error {
+	//
+	/**
+	xcompanyid：^[a-z0-9\-]*$
+	xlimitstr：不能存在 单引号、双引号、update、delete 等关键词
+	xusername：^[a-zA-Z][a-zA-Z0-9_-]{3,15}$
+	xpassword：^[a-fA-F0-9]{32,64}$
+	xphone：(^((1)\d{10})$|^((\d{7,8})|(\d{4}|\d{3})-(\d{7,8})|(\d{4}|\d{3})-(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1})|(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1}))$)，手机号码、电话号码
+	xmobile：`^(1)\d{10}$，手机号码
+	xtafter：在当前时间之后
+	xtbefore：在当前时间之前
+	xqueryday：yyyy-MM-dd格式日期
+	xquerymonth：yyyy-MM格式月份
+	xquerydate：yyyy-MM-dd格式日期、yyyy-MM格式月份
+	xquerytime：yyyy-MM-dd HH:mm:ss格式时间
+	xquerydayortime：yyyy-MM-dd格式日期、yyyy-MM-dd HH:mm:ss格式时间
+	xthhmmss：HH:mm:ss格式时间
+	xthhmm：mm:ss格式时间
+	xmutilof：验证字符串复选，可以多选，但不可重复
+	xnorepeat：验证Slice不可以重复，基础数据类型直接验证，结构体可以指定验证指定的field字段
+	xweburl：验证WEB网址，必须是https或http协议，没有参数协议后面至少1位字符串，有参数则协议后字符串长度必须大于等于参数值
+	xfilename：验证是否文件，不能包含文件分隔符、换行符、tab字符，必须包含.字符，不能以.字符开头结束
+	*/
+
 	Validator = validator.New()
 	err := Validator.RegisterValidation("xcompanyid", xValid_Register_CompanyId)
 	if err != nil {
@@ -117,7 +141,7 @@ func XValidatorInit() error {
 
 /*
 *
-通过xvalid_error注入需要自定义显示的错误信息
+通过xvalid_error注入需要自定义显示的错误信息，showFirstError：true时候显示第一条具体错误信息，false时候显示参数校验错误
 */
 func XValidator(u interface{}, showFirstError bool) (error, *[]xresponse.ParamError) {
 	err := Validator.Struct(u)
@@ -525,7 +549,7 @@ func xValid_Register_QueryTime(fl validator.FieldLevel) bool {
 	return true
 }
 
-// 验证WEB网址，必须是https或http协议，没有参数协议后面至少1位字符串，由参数则协议后字符串长度必须大于等于参数值
+// 验证WEB网址，必须是https或http协议，没有参数协议后面至少1位字符串，有参数则协议后字符串长度必须大于等于参数值
 func xValid_Register_xweburl(fl validator.FieldLevel) bool {
 	flString, _ := XValidParseToString(fl)
 	if len(flString) <= 0 {
@@ -576,7 +600,7 @@ func old_xValid_Register_xfilename(fl validator.FieldLevel) bool {
 	}
 }
 
-// 验证是否文件
+// 验证是否文件，不能包含文件分隔符、换行符、tab字符，必须包含.字符，不能以.字符开头结束
 func xValid_Register_xfilename(fl validator.FieldLevel) bool {
 	flStr, _ := XValidParseToString(fl)
 	if len(flStr) <= 0 {

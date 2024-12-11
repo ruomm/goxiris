@@ -50,6 +50,7 @@ func ConfigShowParseError(show bool) {
 	showParseError = show
 }
 
+// 解析请求参数，支持json、xreq_query、xreq_header、resp、xreq_refx等注解，支持validator v10验证
 func XRequestParse(irisCtx iris.Context, req interface{}) (error, *[]xresponse.ParamError) {
 	// 解析参数
 	err, paramErrs := xReq_parse(irisCtx, req)
