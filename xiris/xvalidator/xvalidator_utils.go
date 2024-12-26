@@ -136,7 +136,11 @@ func XValidatorInit() error {
 	if err != nil {
 		return err
 	}
-	err = Validator.RegisterValidation("xfilenamewithpath", xValid_Register_xfilenamewithpath)
+	err = Validator.RegisterValidation("xfilepath", xValid_Register_xfilepath)
+	if err != nil {
+		return err
+	}
+	err = Validator.RegisterValidation("xfiledir", xValid_Register_xfiledir)
 	if err != nil {
 		return err
 	}
@@ -604,17 +608,17 @@ func old_xValid_Register_xfilename(fl validator.FieldLevel) bool {
 	}
 }
 
-// 验证是否文件，不能包含文件分隔符、换行符、tab字符，必须包含.字符，不能以.字符开头结束
+// 验证是否文件，不能包含文件分隔符、换行符、tab字符，必须包含.字符
 func xValid_Register_xfilename(fl validator.FieldLevel) bool {
-	flStr, _ := XValidParseToString(fl)
-	if len(flStr) <= 0 {
+	fileName, _ := XValidParseToString(fl)
+	if len(fileName) <= 0 {
 		return false
 	}
-	if strings.Contains(flStr, "/") || strings.Contains(flStr, "\\") || strings.Contains(flStr, "\r") || strings.Contains(flStr, "\n") || strings.Contains(flStr, "\t") {
+	if strings.Contains(fileName, "/") || strings.Contains(fileName, "\\") || strings.Contains(fileName, "\r") || strings.Contains(fileName, "\n") || strings.Contains(fileName, "\t") {
 		return false
 	}
-	fileNameWithoutExtension := corex.GetFileNameWithoutExtension(flStr)
-	fileExtension := strings.ToLower(corex.GetFileExtension(flStr))
+	fileNameWithoutExtension := corex.GetFileNameWithoutExtension(fileName)
+	fileExtension := strings.ToLower(corex.GetFileExtension(fileName))
 	if len(fileNameWithoutExtension) <= 0 {
 		return false
 	}
@@ -640,18 +644,18 @@ func xValid_Register_xfilename(fl validator.FieldLevel) bool {
 	return flResult
 }
 
-// 验证是否文件，不能包含文件分隔符、换行符、tab字符，必须包含.字符，不能以.字符开头结束
-func xValid_Register_xfilenamewithpath(fl validator.FieldLevel) bool {
-	flStrFull, _ := XValidParseToString(fl)
-	if len(flStrFull) <= 0 {
+// 验证是否文件，不能包含文件分隔符、换行符、tab字符，必须包含.字符
+func xValid_Register_xfilepath(fl validator.FieldLevel) bool {
+	filePath, _ := XValidParseToString(fl)
+	if len(filePath) <= 0 {
 		return false
 	}
-	if strings.Contains(flStrFull, "\r") || strings.Contains(flStrFull, "\n") || strings.Contains(flStrFull, "\t") {
+	if strings.Contains(filePath, "\r") || strings.Contains(filePath, "\n") || strings.Contains(filePath, "\t") {
 		return false
 	}
-	flStr := corex.GetFileName(flStrFull)
-	fileNameWithoutExtension := corex.GetFileNameWithoutExtension(flStr)
-	fileExtension := strings.ToLower(corex.GetFileExtension(flStr))
+	fileName := corex.GetFileName(filePath)
+	fileNameWithoutExtension := corex.GetFileNameWithoutExtension(fileName)
+	fileExtension := strings.ToLower(corex.GetFileExtension(fileName))
 	if len(fileNameWithoutExtension) <= 0 {
 		return false
 	}
@@ -675,6 +679,39 @@ func xValid_Register_xfilenamewithpath(fl validator.FieldLevel) bool {
 		}
 	}
 	return flResult
+}
+
+// 验证是否文件夹，不能包含文件分隔符、换行符、tab字符，最后的子文件夹中不能含有.符号
+func xValid_Register_xfiledir(fl validator.FieldLevel) bool {
+	filePath, _ := XValidParseToString(fl)
+	if len(filePath) <= 0 {
+		return false
+	}
+	if strings.Contains(filePath, "\r") || strings.Contains(filePath, "\n") || strings.Contains(filePath, "\t") {
+		return false
+	}
+	fileName := corex.GetFileName(filePath)
+	if len(fileName) <= 0 {
+		return true
+	}
+	if strings.Contains(fileName, ".") {
+		return false
+	} else {
+		return true
+	}
+	//if strings.HasSuffix(fileName, ".") {
+	//	return false
+	//}
+	//fileNameWithoutExtension := corex.GetFileNameWithoutExtension(fileName)
+	//fileExtension := strings.ToLower(corex.GetFileExtension(fileName))
+	//if len(fileNameWithoutExtension) <= 0 {
+	//	return true
+	//}
+	//if len(fileExtension) <= 0 {
+	//	return true
+	//} else {
+	//	return false
+	//}
 }
 
 // 解析为字符串
