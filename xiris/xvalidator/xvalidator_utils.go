@@ -136,6 +136,10 @@ func XValidatorInit() error {
 	if err != nil {
 		return err
 	}
+	err = Validator.RegisterValidation("xfilenamewithpath", xValid_Register_xfilenamewithpath)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -609,13 +613,12 @@ func xValid_Register_xfilename(fl validator.FieldLevel) bool {
 	if strings.Contains(flStr, "/") || strings.Contains(flStr, "\\") || strings.Contains(flStr, "\r") || strings.Contains(flStr, "\n") || strings.Contains(flStr, "\t") {
 		return false
 	}
-	if strings.HasSuffix(flStr, ".") {
+	fileNameWithoutExtension := corex.GetFileNameWithoutExtension(flStr)
+	fileExtension := strings.ToLower(corex.GetFileExtension(flStr))
+	if len(fileNameWithoutExtension) <= 0 {
 		return false
 	}
-	if strings.HasPrefix(flStr, ".") {
-		return false
-	}
-	if !strings.Contains(flStr, ".") {
+	if len(fileExtension) <= 0 {
 		return false
 	}
 	flParam := fl.Param()
@@ -627,7 +630,43 @@ func xValid_Register_xfilename(fl validator.FieldLevel) bool {
 		return true
 	}
 	flResult := false
+	for _, tmpExt := range sliceParam {
+		tmpExtLower := strings.ToLower(tmpExt)
+		if fileExtension == tmpExtLower || "."+fileExtension == tmpExtLower {
+			flResult = true
+			break
+		}
+	}
+	return flResult
+}
+
+// 验证是否文件，不能包含文件分隔符、换行符、tab字符，必须包含.字符，不能以.字符开头结束
+func xValid_Register_xfilenamewithpath(fl validator.FieldLevel) bool {
+	flStrFull, _ := XValidParseToString(fl)
+	if len(flStrFull) <= 0 {
+		return false
+	}
+	if strings.Contains(flStrFull, "\r") || strings.Contains(flStrFull, "\n") || strings.Contains(flStrFull, "\t") {
+		return false
+	}
+	flStr := corex.GetFileName(flStrFull)
+	fileNameWithoutExtension := corex.GetFileNameWithoutExtension(flStr)
 	fileExtension := strings.ToLower(corex.GetFileExtension(flStr))
+	if len(fileNameWithoutExtension) <= 0 {
+		return false
+	}
+	if len(fileExtension) <= 0 {
+		return false
+	}
+	flParam := fl.Param()
+	if len(flParam) <= 0 {
+		return true
+	}
+	sliceParam := corex.StringToSlice(flParam, " ", false)
+	if len(sliceParam) <= 0 {
+		return true
+	}
+	flResult := false
 	for _, tmpExt := range sliceParam {
 		tmpExtLower := strings.ToLower(tmpExt)
 		if fileExtension == tmpExtLower || "."+fileExtension == tmpExtLower {
